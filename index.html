@@ -6,44 +6,55 @@
 <title>Iframe Maker</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
 <style>
-/* Layout: a one-screen workbench. Title row, link field, then settings (left) beside a live preview (top right) and the embed code (bottom right). On phones the three panes switch with tabs so nothing scrolls. */
+/* One-screen workbench: header, link bar, then settings (left) beside a live preview in a browser frame and the embed code (right). On phones the three panes switch with tabs. */
 :root {
-  --bg: #edf0f5;
+  --bg: #f3f4fa;
+  --bg-glow: rgba(99, 102, 241, 0.10);
   --surface: #ffffff;
-  --surface-2: #f5f7fb;
-  --fg: #131c2b;
-  --muted: #566277;
-  --line: #d3d9e3;
-  --accent: #2b55f5;
+  --surface-2: #f6f7fc;
+  --fg: #151a2c;
+  --muted: #5d6680;
+  --line: #dfe2ee;
+  --accent: #4f46e5;
+  --accent-2: #7c3aed;
   --accent-fg: #ffffff;
-  --warn-bg: #fff1d6;
-  --warn-fg: #7a4a00;
-  --ok-bg: #dff5e7;
-  --ok-fg: #14602f;
-  --code-bg: #0f1724;
-  --code-fg: #dce6f5;
+  --accent-soft: rgba(79, 70, 229, 0.10);
+  --warn-bg: #fff4dc; --warn-fg: #7a4a00;
+  --ok-bg: #def7e8; --ok-fg: #14602f;
+  --code-bg: #0e1424; --code-bar: #151c31; --code-fg: #d9e2f5;
+  --t-tag: #7dd3fc; --t-attr: #c4b5fd; --t-str: #86efac; --t-punc: #7b8aa8; --t-key: #f9a8d4;
+  --shadow: 0 1px 2px rgba(20, 26, 60, 0.05), 0 8px 24px -12px rgba(20, 26, 60, 0.16);
   --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e141e; --surface: #161e2b; --surface-2: #1c2636; --fg: #e6ebf3; --muted: #94a0b4; --line: #2a3547;
-    --accent: #86a0ff; --accent-fg: #0e141e; --warn-bg: #3a2c10; --warn-fg: #f2c879; --ok-bg: #123324; --ok-fg: #8fdcae;
-    --code-bg: #0a0f18; --code-fg: #d6e0f2; color-scheme: dark;
+    --bg: #0b0f1a; --bg-glow: rgba(124, 92, 255, 0.14); --surface: #131929; --surface-2: #19203400; --fg: #e8ecf6; --muted: #98a2bb; --line: #263049;
+    --accent: #8b8cff; --accent-2: #a78bfa; --accent-fg: #0b0f1a; --accent-soft: rgba(139, 140, 255, 0.14);
+    --warn-bg: #3a2c10; --warn-fg: #f2c879; --ok-bg: #123324; --ok-fg: #8fdcae;
+    --code-bg: #090d17; --code-bar: #101628; --code-fg: #d6e0f2;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
   }
+  :root:not([data-theme="light"]) { --surface-2: #19203a; }
 }
 :root[data-theme="dark"] {
-  --bg: #0e141e; --surface: #161e2b; --surface-2: #1c2636; --fg: #e6ebf3; --muted: #94a0b4; --line: #2a3547;
-  --accent: #86a0ff; --accent-fg: #0e141e; --warn-bg: #3a2c10; --warn-fg: #f2c879; --ok-bg: #123324; --ok-fg: #8fdcae;
-  --code-bg: #0a0f18; --code-fg: #d6e0f2; color-scheme: dark;
+  --bg: #0b0f1a; --bg-glow: rgba(124, 92, 255, 0.14); --surface: #131929; --surface-2: #19203a; --fg: #e8ecf6; --muted: #98a2bb; --line: #263049;
+  --accent: #8b8cff; --accent-2: #a78bfa; --accent-fg: #0b0f1a; --accent-soft: rgba(139, 140, 255, 0.14);
+  --warn-bg: #3a2c10; --warn-fg: #f2c879; --ok-bg: #123324; --ok-fg: #8fdcae;
+  --code-bg: #090d17; --code-bar: #101628; --code-fg: #d6e0f2;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html { height: 100%; }
 body {
   height: 100%; margin: 0; overflow: hidden;
-  background: var(--bg); color: var(--fg);
+  background: var(--bg) radial-gradient(900px 420px at 85% -10%, var(--bg-glow), transparent 70%);
+  color: var(--fg);
   font-family: var(--font-body); font-size: 14px; line-height: 1.4;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -51,86 +62,130 @@ body {
   padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
   display: flex; flex-direction: column;
 }
-.wrap { flex: 1; min-height: 0; width: 100%; max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.wrap { flex: 1; min-height: 0; width: 100%; max-width: 1300px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-header { display: flex; align-items: center; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; flex: none; }
-.brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; flex-wrap: wrap; }
-header h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.55rem; letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
-header p { margin: 0; color: var(--muted); font-size: 13px; }
+/* header */
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; }
+.brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.logo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #fff; flex: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 6px 16px -6px var(--accent); }
+.logo svg { width: 18px; height: 18px; }
+header h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
+header p { margin: 1px 0 0; color: var(--muted); font-size: 12.5px; }
+.iconbtn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; box-shadow: var(--shadow); transition: color .15s, border-color .15s; }
+.iconbtn:hover { color: var(--fg); border-color: var(--accent); }
 
-.urlbar { display: flex; flex-direction: column; gap: 6px; flex: none; }
-.urlrow { display: flex; gap: 8px; }
-.urlrow input { flex: 1 1 auto; min-width: 0; }
-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
-input[type="text"], input[type="number"], select {
-  font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line);
-  border-radius: 8px; padding: 7px 10px; width: 100%; min-width: 0;
-}
-input.big { font-family: var(--font-mono); font-size: 13.5px; padding: 10px 12px; border-width: 1.5px; }
-input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible, pre:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
+/* link bar */
+.urlbar { display: flex; flex-direction: column; gap: 8px; flex: none; }
+.urlfield { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 6px 6px 6px 14px; box-shadow: var(--shadow); transition: border-color .15s, box-shadow .15s; }
+.urlfield:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow); }
+.urlfield > svg { color: var(--muted); }
+.urlfield input { flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--fg); font-family: var(--font-mono); font-size: 13.5px; padding: 8px 2px; }
+.urlfield input::placeholder { color: var(--muted); opacity: .7; }
 .status { display: flex; flex-direction: column; gap: 5px; }
 .status:empty { display: none; }
-.note { border-radius: 8px; padding: 6px 10px; font-size: 13px; line-height: 1.35; }
+.note { border-radius: 10px; padding: 6px 11px; font-size: 13px; line-height: 1.35; }
 .note.ok { background: var(--ok-bg); color: var(--ok-fg); }
 .note.warn { background: var(--warn-bg); color: var(--warn-fg); }
 .note b { font-weight: 600; }
 .note code { font-family: var(--font-mono); font-size: 12px; }
 
-.mtabs { display: none; gap: 4px; flex: none; }
-.mtab { flex: 1; font: inherit; font-size: 13px; font-weight: 600; background: var(--surface); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 7px; cursor: pointer; }
-.mtab[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+/* buttons */
+.btn { display: inline-flex; align-items: center; gap: 7px; font: inherit; font-weight: 600; font-size: 13.5px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border: 0; border-radius: 10px; padding: 8px 15px; cursor: pointer; transition: filter .15s, transform .1s; }
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); font-weight: 500; }
+.btn.ghost:hover { border-color: var(--accent); }
+.btn.small { font-size: 12.5px; padding: 6px 11px; }
+.btn.done { background: #16a34a; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.bench { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 12px; }
+/* layout */
+.bench { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 330px) minmax(0, 1fr); gap: 12px; }
 .right { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; overflow: hidden; }
-#p-prev { flex: 1.35 1 0; }
-#p-code { flex: 1 1 0; min-height: 150px; }
-.panel h2 { font-family: var(--font-display); font-size: 0.95rem; margin: 0; letter-spacing: -0.01em; flex: none; }
-#p-set { overflow-y: auto; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
-.field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.field.span2 { grid-column: 1 / -1; }
-.checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
-.check { display: flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
-.check input { accent-color: var(--accent); margin: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 11px; min-width: 0; min-height: 0; overflow: hidden; box-shadow: var(--shadow); }
+#p-prev { flex: 1.4 1 0; }
+#p-code { flex: 1 1 0; min-height: 160px; }
+.panel h2 { font-family: var(--font-display); font-size: 0.98rem; margin: 0; letter-spacing: -0.01em; }
+.phead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: none; min-width: 0; }
+.phead .meta { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.cap { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* settings */
+/* spare height is shared out evenly between the groups, so the panel never scrolls but fills the space */
+#p-set { overflow: hidden; gap: 10px; padding: clamp(12px, 2vh, 20px) 16px; justify-content: space-between; }
+#p-set .field { gap: 7px; }
+#p-set .switches { gap: clamp(6px, 1.2vh, 12px); }
+#p-set .seg button { padding: 6px 8px; }
+#p-set .num input, #p-set .txt { padding-top: 7px; padding-bottom: 7px; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+label, .lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.num { display: flex; align-items: center; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding-right: 10px; }
+.num:focus-within { border-color: var(--accent); }
+.num input { flex: 1; min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; color: var(--fg); font: inherit; padding: 8px 10px; }
+.num span { color: var(--muted); font-size: 12px; }
+.txt { font: inherit; color: var(--fg); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; width: 100%; min-width: 0; }
+.txt:focus { outline: 0; border-color: var(--accent); }
+select.txt { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 30px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat; background-position: right 10px center; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
 [hidden] { display: none !important; }
 
-/* live preview */
-.prevhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
-.prevhead .meta { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.cap { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.stage {
-  position: relative; flex: 1; min-height: 60px; overflow: hidden; border-radius: 10px;
-  border: 1px dashed var(--line); background: var(--surface-2);
-  background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 14px 14px;
-}
-.stage .ph { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 12px; color: var(--muted); font-size: 13px; }
-.scaler { position: absolute; transform-origin: top left; background: var(--surface); }
+.seg { display: flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; padding: 3px; gap: 2px; }
+.seg button { flex: 1; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--muted); background: transparent; border: 0; border-radius: 8px; padding: 6px 8px; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
+.seg button:hover { color: var(--fg); }
+.seg button[aria-checked="true"] { background: var(--surface); color: var(--fg); font-weight: 600; box-shadow: 0 1px 2px rgba(20, 26, 60, 0.12), 0 0 0 1px var(--line); }
+.seg.wrap { flex-wrap: wrap; }
+.seg.wrap button { flex: 1 1 28%; }
+
+.sw { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; cursor: pointer; text-transform: none; letter-spacing: 0; color: var(--fg); font-weight: 500; }
+.sw small { display: block; color: var(--muted); font-size: 11.5px; font-weight: 400; }
+.sw input { appearance: none; -webkit-appearance: none; width: 34px; height: 20px; border-radius: 999px; background: var(--line); position: relative; margin: 0; cursor: pointer; flex: none; transition: background .2s; }
+.sw input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .2s; }
+.sw input:checked { background: var(--accent); }
+.sw input:checked::after { transform: translateX(14px); }
+.switches { display: flex; flex-direction: column; gap: 9px; }
+
+/* preview in a browser frame */
+.browser { flex: 1; min-height: 80px; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface-2); }
+.bbar { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-bottom: 1px solid var(--line); background: var(--surface); flex: none; }
+.dots { display: flex; gap: 5px; flex: none; }
+.dots i { width: 9px; height: 9px; border-radius: 50%; display: block; background: var(--line); }
+.addr { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 3px 10px; font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+.addr span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.addr svg { width: 12px; height: 12px; }
+.bbar .iconbtn { width: 26px; height: 26px; border-radius: 8px; box-shadow: none; }
+.stage { position: relative; flex: 1; min-height: 40px; overflow: hidden;
+  background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 16px 16px; }
+.stage .ph { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 14px; color: var(--muted); font-size: 13px; }
+.scaler { position: absolute; transform-origin: top left; background: var(--surface); box-shadow: 0 10px 30px -10px rgba(20, 26, 60, 0.35); }
 .scaler iframe { display: block; background: var(--surface); }
 
-.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; flex: none; }
-.tabs { display: flex; gap: 4px; }
-.tab { font: inherit; font-size: 12.5px; font-weight: 500; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 7px; padding: 4px 11px; cursor: pointer; }
-.tab[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-.actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-.actions a { color: var(--accent); font-size: 13px; }
-.btn { font: inherit; font-weight: 600; font-size: 13.5px; background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
-.btn:hover { filter: brightness(1.08); }
-.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); font-weight: 500; padding: 9px 14px; }
-.btn.small { font-size: 12.5px; padding: 4px 10px; }
-
-pre.code {
-  flex: 1; min-height: 60px; margin: 0; background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 12px 14px;
-  font-family: var(--font-mono); font-size: 12px; line-height: 1.55; overflow: auto; white-space: pre; tab-size: 2;
-}
+/* code */
+.codebox { flex: 1; min-height: 60px; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; background: var(--code-bg); }
+.codebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px 6px 12px; background: var(--code-bar); flex: none; }
+.codebar .seg { background: rgba(255,255,255,0.06); border-color: transparent; }
+.codebar .seg button { color: #9fb0cf; padding: 4px 11px; }
+.codebar .seg button[aria-checked="true"] { background: rgba(255,255,255,0.14); color: #fff; box-shadow: none; }
+.codebar .actions { display: flex; align-items: center; gap: 8px; }
+.codebar a.open { display: inline-flex; align-items: center; gap: 5px; color: #9fb0cf; font-size: 12.5px; text-decoration: none; padding: 5px 8px; border-radius: 8px; }
+.codebar a.open:hover { color: #fff; background: rgba(255,255,255,0.08); }
+pre.code { flex: 1; min-height: 40px; margin: 0; color: var(--code-fg); padding: 12px 14px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; overflow: auto; white-space: pre; tab-size: 2; }
+.t-t { color: var(--t-tag); } .t-a { color: var(--t-attr); } .t-s { color: var(--t-str); } .t-p { color: var(--t-punc); } .t-k { color: var(--t-key); }
 .src-line { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
 
-footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); padding-top: 2px; letter-spacing: 0.02em; }
+footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); letter-spacing: 0.02em; }
+
+.mtabs { display: none; flex: none; }
+.mtabs button { padding: 8px; font-size: 13px; }
 
 @media (max-width: 760px) {
-  header h1 { font-size: 1.3rem; }
   header p { display: none; }
+  header h1 { font-size: 1.2rem; }
   .mtabs { display: flex; }
   .bench { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); }
   .right { display: contents; }
@@ -138,9 +193,15 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
   .bench[data-active="prev"] #p-set, .bench[data-active="prev"] #p-code,
   .bench[data-active="code"] #p-set, .bench[data-active="code"] #p-prev,
   .bench[data-active="set"] #p-prev, .bench[data-active="set"] #p-code { display: none; }
+  #paste span { display: none; }
 }
-@media (max-height: 640px) {
+@media (max-height: 700px) {
   header p { display: none; }
+  footer { display: none; }
+  #p-set { gap: 6px; padding: 10px 14px; }
+  #p-set .field { gap: 5px; }
+  #p-set .switches { gap: 4px; }
+  #p-set .seg button { padding: 5px 8px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
@@ -150,105 +211,125 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>Iframe Maker</h1>
-      <p>Paste a link, see it live, get embed code.</p>
+      <div class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></div>
+      <div>
+        <h1>Iframe Maker</h1>
+        <p>Paste a link, see it live, get embed code.</p>
+      </div>
     </div>
+    <button class="iconbtn" id="theme" type="button" title="Switch light / dark" aria-label="Switch light or dark theme">
+      <svg class="i" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+    </button>
   </header>
 
   <section class="urlbar" aria-label="Link">
-    <div class="urlrow">
-      <input id="url" class="big" type="text" inputmode="url" autocomplete="off" spellcheck="false" value="https://www.youtube.com/watch?v=aqz-KE-bpKQ" placeholder="Paste a link, for example https://example.com/page" aria-label="Link to embed">
-      <button class="btn ghost" id="clear" type="button">Clear</button>
+    <div class="urlfield">
+      <svg class="i" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"/></svg>
+      <input id="url" type="text" inputmode="url" autocomplete="off" spellcheck="false" value="https://www.youtube.com/watch?v=aqz-KE-bpKQ" placeholder="Paste a link, for example https://example.com/page" aria-label="Link to embed">
+      <button class="btn ghost small" id="clear" type="button">Clear</button>
+      <button class="btn small" id="paste" type="button" title="Paste from clipboard">
+        <svg class="i" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2"/></svg><span>Paste</span>
+      </button>
     </div>
     <div class="status" id="status" role="status" aria-live="polite"></div>
   </section>
 
-  <div class="mtabs" role="tablist" aria-label="Section">
-    <button class="mtab" role="tab" data-pane="prev" aria-selected="true" type="button">Preview</button>
-    <button class="mtab" role="tab" data-pane="code" aria-selected="false" type="button">Code</button>
-    <button class="mtab" role="tab" data-pane="set" aria-selected="false" type="button">Settings</button>
+  <div class="seg mtabs" id="mseg" data-value="prev" role="radiogroup" aria-label="Section">
+    <button type="button" role="radio" data-v="prev">Preview</button>
+    <button type="button" role="radio" data-v="code">Code</button>
+    <button type="button" role="radio" data-v="set">Settings</button>
   </div>
 
   <div class="bench" id="bench" data-active="prev">
     <section class="panel" id="p-set" aria-labelledby="h-set">
       <h2 id="h-set">Settings</h2>
 
-      <div class="grid2">
-        <div class="field span2">
-          <label for="mode">Size</label>
-          <select id="mode">
-            <option value="fixed">Fixed width and height</option>
-            <option value="full">Full width, fixed height</option>
-            <option value="ratio">Full width, keep aspect ratio</option>
-          </select>
-        </div>
-        <div class="field" id="f-w"><label for="w">Width (px)</label><input id="w" type="number" min="50" max="4000" value="640"></div>
-        <div class="field" id="f-h"><label for="h">Height (px)</label><input id="h" type="number" min="50" max="4000" value="360"></div>
-        <div class="field" id="f-r" hidden>
-          <label for="ratio">Aspect ratio</label>
-          <select id="ratio">
-            <option value="16/9" selected>16:9 (video)</option>
-            <option value="4/3">4:3</option>
-            <option value="1/1">1:1</option>
-            <option value="9/16">9:16 (vertical)</option>
-            <option value="3/4">3:4 (document)</option>
-            <option value="21/9">21:9 (wide)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="radius">Corners</label>
-          <select id="radius">
-            <option value="0">Square</option>
-            <option value="8" selected>Rounded (8px)</option>
-            <option value="16">Very rounded (16px)</option>
-          </select>
-        </div>
-        <div class="field span2">
-          <label for="sandbox">Sandbox</label>
-          <select id="sandbox">
-            <option value="none">Off (site works normally)</option>
-            <option value="standard">Standard (scripts, forms, popups allowed)</option>
-            <option value="locked">Locked down (static content only)</option>
-          </select>
-        </div>
-        <div class="field span2">
-          <label for="title">Title (for screen readers)</label>
-          <input id="title" type="text" placeholder="Filled in from the link if left empty" autocomplete="off">
+      <div class="field">
+        <span class="lbl">Size</span>
+        <div class="seg" id="mode" data-value="fixed" role="radiogroup" aria-label="Size">
+          <button type="button" role="radio" data-v="fixed" title="Fixed width and height">Fixed</button>
+          <button type="button" role="radio" data-v="full" title="Full width, fixed height">Full width</button>
+          <button type="button" role="radio" data-v="ratio" title="Full width, keep aspect ratio">Ratio</button>
         </div>
       </div>
 
-      <div class="checks">
-        <label class="check" title="Lets visitors open the frame fullscreen"><input type="checkbox" id="fs" checked><span>Fullscreen</span></label>
-        <label class="check" title="Waits until the frame is near the screen before loading"><input type="checkbox" id="lazy" checked><span>Lazy load</span></label>
-        <label class="check" title="Autoplay, picture-in-picture and clipboard write. Needed by most video players."><input type="checkbox" id="media"><span>Media permissions</span></label>
+      <div class="row2">
+        <div class="field" id="f-w"><label for="w">Width</label><div class="num"><input id="w" type="number" min="50" max="4000" value="640"><span>px</span></div></div>
+        <div class="field" id="f-h"><label for="h">Height</label><div class="num"><input id="h" type="number" min="50" max="4000" value="360"><span>px</span></div></div>
+      </div>
+
+      <div class="field" id="f-r" hidden>
+        <span class="lbl">Aspect ratio</span>
+        <select class="txt" id="ratio" aria-label="Aspect ratio">
+          <option value="16/9" selected>16:9 (video)</option>
+          <option value="4/3">4:3</option>
+          <option value="1/1">1:1 (square)</option>
+          <option value="9/16">9:16 (vertical)</option>
+          <option value="3/4">3:4 (document)</option>
+          <option value="21/9">21:9 (wide)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Corners</span>
+        <div class="seg" id="radius" data-value="8" role="radiogroup" aria-label="Corners">
+          <button type="button" role="radio" data-v="0">Square</button>
+          <button type="button" role="radio" data-v="8">Rounded</button>
+          <button type="button" role="radio" data-v="16">Round</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Sandbox</span>
+        <div class="seg" id="sandbox" data-value="none" role="radiogroup" aria-label="Sandbox">
+          <button type="button" role="radio" data-v="none" title="Site works normally">Off</button>
+          <button type="button" role="radio" data-v="standard" title="Scripts, forms and popups allowed">Standard</button>
+          <button type="button" role="radio" data-v="locked" title="Static content only">Locked</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="title">Title (for screen readers)</label>
+        <input class="txt" id="title" type="text" placeholder="Filled in from the link if empty" autocomplete="off">
+      </div>
+
+      <div class="switches">
+        <label class="sw" title="Visitors can expand the frame"><span>Fullscreen</span><input type="checkbox" id="fs" checked></label>
+        <label class="sw" title="Loads when near the screen"><span>Lazy load</span><input type="checkbox" id="lazy" checked></label>
+        <label class="sw" title="Autoplay, picture-in-picture, clipboard write"><span>Media permissions</span><input type="checkbox" id="media"></label>
       </div>
     </section>
 
     <div class="right">
       <section class="panel" id="p-prev" aria-labelledby="h-prev">
-        <div class="prevhead">
-          <div class="meta">
-            <h2 id="h-prev">Live preview</h2>
-            <span class="cap" id="prev-cap"></span>
-          </div>
-          <button class="btn ghost small" id="reload" type="button" title="Load the frame again">Reload</button>
+        <div class="phead">
+          <div class="meta"><h2 id="h-prev">Live preview</h2><span class="cap" id="prev-cap"></span></div>
         </div>
-        <div class="stage" id="stage"></div>
+        <div class="browser">
+          <div class="bbar">
+            <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+            <div class="addr"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg><span id="addr">No link yet</span></div>
+            <button class="iconbtn" id="reload" type="button" title="Reload the frame" aria-label="Reload the frame"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5"/></svg></button>
+          </div>
+          <div class="stage" id="stage"></div>
+        </div>
       </section>
 
       <section class="panel" id="p-code" aria-labelledby="h-out">
-        <div class="toolbar">
-          <h2 id="h-out">Your embed code</h2>
-          <div class="tabs" role="tablist" aria-label="Code format">
-            <button class="tab" role="tab" id="tab-html" aria-selected="true" data-fmt="html" type="button">HTML</button>
-            <button class="tab" role="tab" id="tab-jsx" aria-selected="false" data-fmt="jsx" type="button">React (JSX)</button>
+        <div class="phead"><h2 id="h-out">Your embed code</h2></div>
+        <div class="codebox">
+          <div class="codebar">
+            <div class="seg" id="fmtseg" data-value="html" role="radiogroup" aria-label="Code format">
+              <button type="button" role="radio" data-v="html">HTML</button>
+              <button type="button" role="radio" data-v="jsx">React (JSX)</button>
+            </div>
+            <div class="actions">
+              <a class="open" id="open" href="#" target="_blank" rel="noopener noreferrer"><svg class="i" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg>Open link</a>
+              <button class="btn small" id="copy" type="button"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg><span id="copy-t">Copy code</span></button>
+            </div>
           </div>
-          <div class="actions">
-            <a id="open" href="#" target="_blank" rel="noopener noreferrer">Open link</a>
-            <button class="btn" id="copy" type="button">Copy code</button>
-          </div>
+          <pre class="code" id="code" tabindex="0" aria-labelledby="h-out"></pre>
         </div>
-        <pre class="code" id="code" tabindex="0" aria-labelledby="h-out"></pre>
         <div class="src-line" id="srcline"></div>
       </section>
     </div>
@@ -261,15 +342,49 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var el = {
-    url: $('url'), clear: $('clear'), status: $('status'),
+    url: $('url'), clear: $('clear'), paste: $('paste'), status: $('status'),
     mode: $('mode'), w: $('w'), h: $('h'), ratio: $('ratio'), radius: $('radius'), title: $('title'),
-    sandbox: $('sandbox'), fs: $('fs'), lazy: $('lazy'), media: $('media'),
+    sandbox: $('sandbox'), sbhint: $('sbhint'), fs: $('fs'), lazy: $('lazy'), media: $('media'),
     fW: $('f-w'), fH: $('f-h'), fR: $('f-r'),
-    stage: $('stage'), cap: $('prev-cap'), reload: $('reload'),
-    code: $('code'), copy: $('copy'), open: $('open'), srcline: $('srcline'), bench: $('bench')
+    stage: $('stage'), cap: $('prev-cap'), reload: $('reload'), addr: $('addr'),
+    code: $('code'), copy: $('copy'), copyT: $('copy-t'), open: $('open'), srcline: $('srcline'), bench: $('bench'),
+    fmtseg: $('fmtseg'), mseg: $('mseg'), theme: $('theme')
   };
   var fmt = 'html';
   var lastProvider = null;
+
+  /* ---------- segmented controls (act like selects: .value and a change event) ---------- */
+  function initSeg(node) {
+    var btns = [].slice.call(node.querySelectorAll('button'));
+    function set(v) {
+      node.dataset.value = v;
+      btns.forEach(function (b) {
+        var on = b.dataset.v === v;
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+        b.tabIndex = on ? 0 : -1;
+      });
+    }
+    Object.defineProperty(node, 'value', { get: function () { return node.dataset.value; }, set: set });
+    btns.forEach(function (b, i) {
+      b.addEventListener('click', function () {
+        if (node.value !== b.dataset.v) { set(b.dataset.v); node.dispatchEvent(new Event('change', { bubbles: true })); }
+      });
+      b.addEventListener('keydown', function (e) {
+        var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+        if (!d) return;
+        e.preventDefault();
+        var n = btns[(i + d + btns.length) % btns.length]; n.focus(); n.click();
+      });
+    });
+    set(node.dataset.value);
+  }
+  [el.mode, el.radius, el.sandbox, el.fmtseg, el.mseg].forEach(initSeg);
+
+  var SB_HINT = {
+    none: 'Site works normally.',
+    standard: 'Scripts, forms and popups allowed.',
+    locked: 'Static content only.'
+  };
 
   /* ---------- link handling ---------- */
   function normalize(raw) {
@@ -437,9 +552,26 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
     return out + '  );\n}';
   }
 
+  /* syntax colors; textContent of the result is still the plain code, so copying is unaffected */
+  function highlight(t) {
+    var h = t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return h.replace(/("[^"]*"|'[^']*')|(&lt;\/?)([A-Za-z]+)|\b(export|default|function|return)\b|([A-Za-z-]+)(?==)/g,
+      function (m, s, lt, tag, kw, attr) {
+        if (s) return '<span class="t-s">' + s + '</span>';
+        if (lt) return '<span class="t-p">' + lt + '</span><span class="t-t">' + tag + '</span>';
+        if (kw) return '<span class="t-k">' + kw + '</span>';
+        if (attr) return '<span class="t-a">' + attr + '</span>';
+        return m;
+      });
+  }
+  function setCode(text, isCode) {
+    if (isCode) el.code.innerHTML = highlight(text); else el.code.textContent = text;
+    el.copy.disabled = !isCode;
+  }
+
   /* ---------- live preview ---------- */
   var pv = { scaler: null, wrap: null, frame: null, key: '', timer: null, last: null };
-  var PAD = 10;
+  var PAD = 14;
 
   function placeholder(msg) {
     clearTimeout(pv.timer);
@@ -449,6 +581,7 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
     d.className = 'ph'; d.textContent = msg;
     el.stage.appendChild(d);
     el.cap.textContent = '';
+    el.addr.textContent = 'No link yet';
   }
 
   function mount(m) {
@@ -529,12 +662,12 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
     el.open.hidden = true; el.srcline.textContent = '';
 
     if (!res) {
-      el.code.textContent = 'Paste a link above to generate the code.';
+      setCode('Paste a link above to generate the code.', false);
       placeholder('Paste a link to see a live preview.'); return;
     }
     if (res.error) {
       el.status.appendChild(note('warn', esc(res.error)));
-      el.code.textContent = 'No code yet. Fix the link above.';
+      setCode('No code yet. Fix the link above.', false);
       placeholder('Fix the link to see a live preview.'); return;
     }
 
@@ -560,7 +693,7 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
     if (conv && conv.hint) el.status.appendChild(note('warn', esc(conv.hint)));
 
     if (!src) {
-      el.code.textContent = 'No code yet. Fix the link above.';
+      setCode('No code yet. Fix the link above.', false);
       placeholder('No preview yet. Fix the link above.'); return;
     }
 
@@ -569,8 +702,9 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
     if (u.protocol === 'http:') el.status.appendChild(note('warn', 'This link uses <code>http</code>, which browsers block inside <code>https</code> pages. Try the <code>https</code> version.'));
 
     var m = model(src, host);
-    el.code.textContent = fmt === 'html' ? renderHtml(m) : renderJsx(m);
+    setCode(fmt === 'html' ? renderHtml(m) : renderJsx(m), true);
     el.srcline.textContent = 'Frame address: ' + src;
+    el.addr.textContent = src.replace(/^https?:\/\//, '');
     el.open.href = u.href; el.open.hidden = false;
     preview(m);
   }
@@ -587,28 +721,27 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
     [el.url, el.w, el.h, el.ratio, el.radius, el.title, el.sandbox, el.fs, el.lazy, el.media].forEach(function (n) { n.addEventListener(ev, update); });
   });
   el.mode.addEventListener('change', function () { syncMode(); update(); });
-  el.clear.addEventListener('click', function () { el.url.value = ''; lastProvider = null; update(); el.url.focus(); });
-
-  document.querySelectorAll('.tab').forEach(function (t) {
-    t.addEventListener('click', function () {
-      fmt = t.getAttribute('data-fmt');
-      document.querySelectorAll('.tab').forEach(function (o) { o.setAttribute('aria-selected', o === t ? 'true' : 'false'); });
-      update();
-    });
+  el.fmtseg.addEventListener('change', function () { fmt = el.fmtseg.value; update(); });
+  el.mseg.addEventListener('change', function () {
+    el.bench.setAttribute('data-active', el.mseg.value);
+    setTimeout(layout, 0);
   });
-  document.querySelectorAll('.mtab').forEach(function (t) {
-    t.addEventListener('click', function () {
-      el.bench.setAttribute('data-active', t.getAttribute('data-pane'));
-      document.querySelectorAll('.mtab').forEach(function (o) { o.setAttribute('aria-selected', o === t ? 'true' : 'false'); });
-      setTimeout(layout, 0);
-    });
+  el.clear.addEventListener('click', function () { el.url.value = ''; lastProvider = null; update(); el.url.focus(); });
+  el.paste.addEventListener('click', function () {
+    function manual() { el.url.focus(); el.url.select(); }
+    try {
+      navigator.clipboard.readText().then(function (t) {
+        if (t) { el.url.value = t.trim(); update(); } else { manual(); }
+      }, manual);
+    } catch (e) { manual(); }
   });
 
   el.copy.addEventListener('click', function () {
     var text = el.code.textContent;
     function done(ok) {
-      el.copy.textContent = ok ? 'Copied' : 'Press Ctrl+C to copy';
-      setTimeout(function () { el.copy.textContent = 'Copy code'; }, 1800);
+      el.copyT.textContent = ok ? 'Copied' : 'Press Ctrl+C to copy';
+      el.copy.classList.toggle('done', ok);
+      setTimeout(function () { el.copyT.textContent = 'Copy code'; el.copy.classList.remove('done'); }, 1800);
     }
     function fallback() {
       var ok = false;
@@ -632,6 +765,18 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
       navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
     } catch (e) { fallback(); }
   });
+
+  /* light / dark */
+  (function () {
+    var root = document.documentElement;
+    try { var saved = localStorage.getItem('iframe-maker-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+    el.theme.addEventListener('click', function () {
+      var cur = root.getAttribute('data-theme') || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      var next = cur === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('iframe-maker-theme', next); } catch (e) {}
+    });
+  })();
 
   syncMode();
   update();
