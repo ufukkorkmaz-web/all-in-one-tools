@@ -1,9 +1,12 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Iframe Maker</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
 <style>
-/* Layout: a one-screen workbench. Title and tagline on one row, the link field under it, then settings (left) beside the frame sketch and code (right), footer last. On phones the two panes switch with tabs so nothing scrolls. */
+/* Layout: a one-screen workbench. Title row, link field, then settings (left) beside a live preview (top right) and the embed code (bottom right). On phones the three panes switch with tabs so nothing scrolls. */
 :root {
   --bg: #edf0f5;
   --surface: #ffffff;
@@ -39,15 +42,16 @@
 * { box-sizing: border-box; }
 html { height: 100%; }
 body {
-  height: 100%; overflow: hidden;
+  height: 100%; margin: 0; overflow: hidden;
   background: var(--bg); color: var(--fg);
   font-family: var(--font-body); font-size: 14px; line-height: 1.4;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 12px 8px;
+  padding-top: max(12px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
   display: flex; flex-direction: column;
 }
-.wrap { flex: 1; min-height: 0; width: 100%; max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.wrap { flex: 1; min-height: 0; width: 100%; max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
 
 header { display: flex; align-items: center; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; flex: none; }
 .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; flex-wrap: wrap; }
@@ -77,8 +81,11 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .mtab { flex: 1; font: inherit; font-size: 13px; font-weight: 600; background: var(--surface); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 7px; cursor: pointer; }
 .mtab[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 
-.bench { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 12px; }
+.bench { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 12px; }
+.right { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; overflow: hidden; }
+#p-prev { flex: 1.35 1 0; }
+#p-code { flex: 1 1 0; min-height: 150px; }
 .panel h2 { font-family: var(--font-display); font-size: 0.95rem; margin: 0; letter-spacing: -0.01em; flex: none; }
 #p-set { overflow-y: auto; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
@@ -89,18 +96,18 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .check input { accent-color: var(--accent); margin: 0; }
 [hidden] { display: none !important; }
 
-.sketch { background: var(--surface-2); border: 1px dashed var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
-.mock {
-  --r: 1.7778; --maxh: clamp(56px, 13vh, 112px);
-  width: min(100%, calc(var(--maxh) * var(--r))); aspect-ratio: var(--r);
-  background: var(--surface); border: 1.5px solid var(--fg); border-radius: 7px; overflow: hidden;
-  display: flex; flex-direction: column; min-height: 40px;
+/* live preview */
+.prevhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
+.prevhead .meta { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cap { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage {
+  position: relative; flex: 1; min-height: 60px; overflow: hidden; border-radius: 10px;
+  border: 1px dashed var(--line); background: var(--surface-2);
+  background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 14px 14px;
 }
-.mock-top { display: flex; align-items: center; gap: 4px; padding: 3px 7px; border-bottom: 1.5px solid var(--fg); background: var(--surface-2); flex: none; }
-.mock-top i { width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid var(--fg); display: block; flex: none; }
-.mock-top em { font-style: normal; font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 3px; }
-.mock-body { flex: 1; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; color: var(--accent); font-size: 14px; text-align: center; padding: 2px; min-height: 0; overflow: hidden; }
-.sketch-cap { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+.stage .ph { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 12px; color: var(--muted); font-size: 13px; }
+.scaler { position: absolute; transform-origin: top left; background: var(--surface); }
+.scaler iframe { display: block; background: var(--surface); }
 
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; flex: none; }
 .tabs { display: flex; gap: 4px; }
@@ -111,38 +118,40 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .btn { font: inherit; font-weight: 600; font-size: 13.5px; background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
 .btn:hover { filter: brightness(1.08); }
 .btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); font-weight: 500; padding: 9px 14px; }
+.btn.small { font-size: 12.5px; padding: 4px 10px; }
 
 pre.code {
-  flex: 1; min-height: 70px; margin: 0; background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 12px 14px;
+  flex: 1; min-height: 60px; margin: 0; background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 12px 14px;
   font-family: var(--font-mono); font-size: 12px; line-height: 1.55; overflow: auto; white-space: pre; tab-size: 2;
 }
 .src-line { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
-.fine { color: var(--muted); font-size: 12px; margin: 0; flex: none; }
 
 footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); padding-top: 2px; letter-spacing: 0.02em; }
 
 @media (max-width: 760px) {
-  body { font-size: 14px; }
   header h1 { font-size: 1.3rem; }
   header p { display: none; }
   .mtabs { display: flex; }
-  .bench { grid-template-columns: 1fr; }
-  .bench[data-active="code"] #p-set, .bench[data-active="set"] #p-out { display: none; }
-  .fine { display: none; }
-  .mock { --maxh: clamp(56px, 12vh, 100px); }
+  .bench { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); }
+  .right { display: contents; }
+  #p-prev, #p-code { flex: none; min-height: 0; }
+  .bench[data-active="prev"] #p-set, .bench[data-active="prev"] #p-code,
+  .bench[data-active="code"] #p-set, .bench[data-active="code"] #p-prev,
+  .bench[data-active="set"] #p-prev, .bench[data-active="set"] #p-code { display: none; }
 }
 @media (max-height: 640px) {
-  .fine { display: none; }
   header p { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <header>
     <div class="brand">
       <h1>Iframe Maker</h1>
-      <p>Paste a link, get embed code.</p>
+      <p>Paste a link, see it live, get embed code.</p>
     </div>
   </header>
 
@@ -155,11 +164,12 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
   </section>
 
   <div class="mtabs" role="tablist" aria-label="Section">
-    <button class="mtab" role="tab" id="mt-code" data-pane="code" aria-selected="true" type="button">Code</button>
-    <button class="mtab" role="tab" id="mt-set" data-pane="set" aria-selected="false" type="button">Settings</button>
+    <button class="mtab" role="tab" data-pane="prev" aria-selected="true" type="button">Preview</button>
+    <button class="mtab" role="tab" data-pane="code" aria-selected="false" type="button">Code</button>
+    <button class="mtab" role="tab" data-pane="set" aria-selected="false" type="button">Settings</button>
   </div>
 
-  <div class="bench" id="bench" data-active="code">
+  <div class="bench" id="bench" data-active="prev">
     <section class="panel" id="p-set" aria-labelledby="h-set">
       <h2 id="h-set">Settings</h2>
 
@@ -214,32 +224,34 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
       </div>
     </section>
 
-    <section class="panel" id="p-out" aria-labelledby="h-out">
-      <h2 id="h-out">Your embed code</h2>
-
-      <div class="sketch" aria-hidden="true">
-        <div class="mock" id="mock">
-          <div class="mock-top"><i></i><i></i><i></i><em id="mock-host">example.com</em></div>
-          <div class="mock-body" id="mock-body">Frame</div>
+    <div class="right">
+      <section class="panel" id="p-prev" aria-labelledby="h-prev">
+        <div class="prevhead">
+          <div class="meta">
+            <h2 id="h-prev">Live preview</h2>
+            <span class="cap" id="prev-cap"></span>
+          </div>
+          <button class="btn ghost small" id="reload" type="button" title="Load the frame again">Reload</button>
         </div>
-        <div class="sketch-cap" id="sketch-cap">640 × 360 px</div>
-      </div>
+        <div class="stage" id="stage"></div>
+      </section>
 
-      <div class="toolbar">
-        <div class="tabs" role="tablist" aria-label="Code format">
-          <button class="tab" role="tab" id="tab-html" aria-selected="true" data-fmt="html" type="button">HTML</button>
-          <button class="tab" role="tab" id="tab-jsx" aria-selected="false" data-fmt="jsx" type="button">React (JSX)</button>
+      <section class="panel" id="p-code" aria-labelledby="h-out">
+        <div class="toolbar">
+          <h2 id="h-out">Your embed code</h2>
+          <div class="tabs" role="tablist" aria-label="Code format">
+            <button class="tab" role="tab" id="tab-html" aria-selected="true" data-fmt="html" type="button">HTML</button>
+            <button class="tab" role="tab" id="tab-jsx" aria-selected="false" data-fmt="jsx" type="button">React (JSX)</button>
+          </div>
+          <div class="actions">
+            <a id="open" href="#" target="_blank" rel="noopener noreferrer">Open link</a>
+            <button class="btn" id="copy" type="button">Copy code</button>
+          </div>
         </div>
-        <div class="actions">
-          <a id="open" href="#" target="_blank" rel="noopener noreferrer">Open link</a>
-          <button class="btn" id="copy" type="button">Copy code</button>
-        </div>
-      </div>
-
-      <pre class="code" id="code" tabindex="0" aria-labelledby="h-out"></pre>
-      <div class="src-line" id="srcline"></div>
-      <p class="fine">No live preview here: this page cannot load other sites. Paste the code into your own page to test it.</p>
-    </section>
+        <pre class="code" id="code" tabindex="0" aria-labelledby="h-out"></pre>
+        <div class="src-line" id="srcline"></div>
+      </section>
+    </div>
   </div>
 
   <footer>Ufuk Korkmaz - 2026</footer>
@@ -253,7 +265,7 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
     mode: $('mode'), w: $('w'), h: $('h'), ratio: $('ratio'), radius: $('radius'), title: $('title'),
     sandbox: $('sandbox'), fs: $('fs'), lazy: $('lazy'), media: $('media'),
     fW: $('f-w'), fH: $('f-h'), fR: $('f-r'),
-    mock: $('mock'), mockHost: $('mock-host'), mockBody: $('mock-body'), cap: $('sketch-cap'),
+    stage: $('stage'), cap: $('prev-cap'), reload: $('reload'),
     code: $('code'), copy: $('copy'), open: $('open'), srcline: $('srcline'), bench: $('bench')
   };
   var fmt = 'html';
@@ -396,7 +408,7 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
     if (el.fs.checked) attrs.push(['allowfullscreen', true]);
     if (el.sandbox.value !== 'none') attrs.push(['sandbox', SANDBOX[el.sandbox.value]]);
     attrs.push(['referrerpolicy', 'strict-origin-when-cross-origin']);
-    return { attrs: attrs, style: style, wrapper: wrapper };
+    return { attrs: attrs, style: style, wrapper: wrapper, mode: mode };
   }
   function cssStr(pairs) { return pairs.map(function (p) { return p[0] + ':' + p[1] + ';'; }).join(''); }
   function cssObj(pairs) { return '{{ ' + pairs.map(function (p) { return camel(p[0]) + ': ' + (/^\d+$/.test(p[1]) ? p[1] : "'" + p[1] + "'"); }).join(', ') + ' }}'; }
@@ -425,21 +437,90 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
     return out + '  );\n}';
   }
 
+  /* ---------- live preview ---------- */
+  var pv = { scaler: null, wrap: null, frame: null, key: '', timer: null, last: null };
+  var PAD = 10;
+
+  function placeholder(msg) {
+    clearTimeout(pv.timer);
+    pv.scaler = pv.wrap = pv.frame = null; pv.key = ''; pv.last = null;
+    el.stage.textContent = '';
+    var d = document.createElement('div');
+    d.className = 'ph'; d.textContent = msg;
+    el.stage.appendChild(d);
+    el.cap.textContent = '';
+  }
+
+  function mount(m) {
+    el.stage.textContent = '';
+    var scaler = document.createElement('div'); scaler.className = 'scaler';
+    var wrap = document.createElement('div');
+    var frame = document.createElement('iframe');
+    m.attrs.forEach(function (a) { frame.setAttribute(a[0], a[1] === true ? '' : a[1]); });
+    wrap.appendChild(frame); scaler.appendChild(wrap); el.stage.appendChild(scaler);
+    pv.scaler = scaler; pv.wrap = wrap; pv.frame = frame;
+  }
+
+  function applyStyles(m) {
+    pv.frame.style.cssText = cssStr(m.style);
+    pv.wrap.style.cssText = m.wrapper ? cssStr(m.wrapper) : '';
+    ['width', 'height'].forEach(function (n) {
+      var found = null;
+      m.attrs.forEach(function (a) { if (a[0] === n) found = a[1]; });
+      if (found === null) pv.frame.removeAttribute(n); else pv.frame.setAttribute(n, found);
+    });
+  }
+
+  function layout() {
+    if (!pv.last || !pv.scaler) return;
+    var m = pv.last;
+    var sw = el.stage.clientWidth - PAD * 2, sh = el.stage.clientHeight - PAD * 2;
+    if (sw < 20 || sh < 20) return;
+    var vw, vh, s = 1;
+    if (m.mode === 'fixed') {
+      vw = clamp(el.w.value, 640); vh = clamp(el.h.value, 360);
+      s = Math.min(1, sw / vw, sh / vh);
+    } else if (m.mode === 'full') {
+      vh = clamp(el.h.value, 360);
+      if (vh > sh) { s = sh / vh; vw = sw / s; } else { vw = sw; }
+    } else {
+      var pr = el.ratio.value.split('/'), r = pr[0] / pr[1];
+      vw = sw; vh = vw / r;
+      if (vh > sh) { vh = sh; vw = vh * r; }
+    }
+    var sc = pv.scaler.style;
+    sc.width = vw + 'px'; sc.height = vh + 'px';
+    sc.transform = 'scale(' + s + ')';
+    sc.left = Math.round((el.stage.clientWidth - vw * s) / 2) + 'px';
+    sc.top = Math.round((el.stage.clientHeight - vh * s) / 2) + 'px';
+    var label = m.mode === 'fixed' ? clamp(el.w.value, 640) + ' × ' + clamp(el.h.value, 360) + ' px'
+      : m.mode === 'full' ? 'full width × ' + vh + ' px'
+      : 'full width · ' + el.ratio.value.replace('/', ':');
+    el.cap.textContent = label + (s < 0.995 ? ' · shown at ' + Math.round(s * 100) + '%' : '');
+  }
+
+  function preview(m) {
+    var key = JSON.stringify(m.attrs.filter(function (a) { return a[0] !== 'width' && a[0] !== 'height'; }));
+    if (key === pv.key && pv.frame) {
+      pv.last = m; applyStyles(m); layout(); return;
+    }
+    clearTimeout(pv.timer);
+    pv.timer = setTimeout(function () {
+      pv.key = key; pv.last = m; mount(m); applyStyles(m); layout();
+    }, 350);
+  }
+
+  el.reload.addEventListener('click', function () {
+    if (!pv.last) return;
+    var m = pv.last; pv.key = ''; mount(m); applyStyles(m); layout();
+  });
+  if (window.ResizeObserver) new ResizeObserver(layout).observe(el.stage);
+  window.addEventListener('resize', layout);
+
   /* ---------- UI ---------- */
   function note(kind, html) {
     var d = document.createElement('div');
     d.className = 'note ' + kind; d.innerHTML = html; return d;
-  }
-
-  function sketch(host, label, mode) {
-    var w = clamp(el.w.value, 640), h = clamp(el.h.value, 360), r, cap;
-    if (mode === 'fixed') { r = w / h; cap = w + ' × ' + h + ' px'; }
-    else if (mode === 'full') { r = 800 / h; cap = 'full width × ' + h + ' px'; }
-    else { var pr = el.ratio.value.split('/'); r = pr[0] / pr[1]; cap = 'full width · ' + pr[0] + ':' + pr[1]; }
-    el.mock.style.setProperty('--r', String(Math.max(0.3, Math.min(5, r))));
-    el.mockHost.textContent = host || 'example.com';
-    el.mockBody.textContent = label || 'Frame';
-    el.cap.textContent = cap;
   }
 
   function update() {
@@ -449,12 +530,12 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
 
     if (!res) {
       el.code.textContent = 'Paste a link above to generate the code.';
-      sketch('', 'Frame', el.mode.value); return;
+      placeholder('Paste a link to see a live preview.'); return;
     }
     if (res.error) {
       el.status.appendChild(note('warn', esc(res.error)));
       el.code.textContent = 'No code yet. Fix the link above.';
-      sketch('', 'Frame', el.mode.value); return;
+      placeholder('Fix the link to see a live preview.'); return;
     }
 
     var u = res.url, host = u.hostname.replace(/^www\./, '');
@@ -480,18 +561,18 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
 
     if (!src) {
       el.code.textContent = 'No code yet. Fix the link above.';
-      sketch(host, conv.provider, el.mode.value); return;
+      placeholder('No preview yet. Fix the link above.'); return;
     }
 
     var b = !conv && blocks(host);
-    if (b) el.status.appendChild(note('warn', '<b>' + esc(b) + ' usually refuses to be framed.</b> The frame will most likely stay blank. Look for an embed option on the site itself.'));
+    if (b) el.status.appendChild(note('warn', '<b>' + esc(b) + ' usually refuses to be framed.</b> The preview will most likely stay blank. Look for an embed option on the site itself.' + (b === 'github.com' ? ' Sites hosted on GitHub Pages (<code>github.io</code>) can be embedded normally.' : '')));
     if (u.protocol === 'http:') el.status.appendChild(note('warn', 'This link uses <code>http</code>, which browsers block inside <code>https</code> pages. Try the <code>https</code> version.'));
 
     var m = model(src, host);
     el.code.textContent = fmt === 'html' ? renderHtml(m) : renderJsx(m);
     el.srcline.textContent = 'Frame address: ' + src;
     el.open.href = u.href; el.open.hidden = false;
-    sketch(host, conv && conv.provider ? conv.provider : host, el.mode.value);
+    preview(m);
   }
 
   function syncMode() {
@@ -519,6 +600,7 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
     t.addEventListener('click', function () {
       el.bench.setAttribute('data-active', t.getAttribute('data-pane'));
       document.querySelectorAll('.mtab').forEach(function (o) { o.setAttribute('aria-selected', o === t ? 'true' : 'false'); });
+      setTimeout(layout, 0);
     });
   });
 
@@ -529,11 +611,22 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
       setTimeout(function () { el.copy.textContent = 'Copy code'; }, 1800);
     }
     function fallback() {
+      var ok = false;
       try {
-        var r = document.createRange(); r.selectNodeContents(el.code);
-        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-        done(false);
-      } catch (e) { done(false); }
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+        document.body.appendChild(ta); ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (e) { ok = false; }
+      if (!ok) {
+        try {
+          var r = document.createRange(); r.selectNodeContents(el.code);
+          var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        } catch (e2) {}
+      }
+      done(ok);
     }
     try {
       navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
@@ -544,5 +637,5 @@ footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); p
   update();
 })();
 </script>
-
-</body></html>
+</body>
+</html>
