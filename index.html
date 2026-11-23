@@ -1,0 +1,548 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Iframe Maker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: a one-screen workbench. Title and tagline on one row, the link field under it, then settings (left) beside the frame sketch and code (right), footer last. On phones the two panes switch with tabs so nothing scrolls. */
+:root {
+  --bg: #edf0f5;
+  --surface: #ffffff;
+  --surface-2: #f5f7fb;
+  --fg: #131c2b;
+  --muted: #566277;
+  --line: #d3d9e3;
+  --accent: #2b55f5;
+  --accent-fg: #ffffff;
+  --warn-bg: #fff1d6;
+  --warn-fg: #7a4a00;
+  --ok-bg: #dff5e7;
+  --ok-fg: #14602f;
+  --code-bg: #0f1724;
+  --code-fg: #dce6f5;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141e; --surface: #161e2b; --surface-2: #1c2636; --fg: #e6ebf3; --muted: #94a0b4; --line: #2a3547;
+    --accent: #86a0ff; --accent-fg: #0e141e; --warn-bg: #3a2c10; --warn-fg: #f2c879; --ok-bg: #123324; --ok-fg: #8fdcae;
+    --code-bg: #0a0f18; --code-fg: #d6e0f2; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e141e; --surface: #161e2b; --surface-2: #1c2636; --fg: #e6ebf3; --muted: #94a0b4; --line: #2a3547;
+  --accent: #86a0ff; --accent-fg: #0e141e; --warn-bg: #3a2c10; --warn-fg: #f2c879; --ok-bg: #123324; --ok-fg: #8fdcae;
+  --code-bg: #0a0f18; --code-fg: #d6e0f2; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { height: 100%; }
+body {
+  height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 14px; line-height: 1.4;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 8px;
+  display: flex; flex-direction: column;
+}
+.wrap { flex: 1; min-height: 0; width: 100%; max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+
+header { display: flex; align-items: center; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; flex: none; }
+.brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; flex-wrap: wrap; }
+header h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.55rem; letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
+header p { margin: 0; color: var(--muted); font-size: 13px; }
+
+.urlbar { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.urlrow { display: flex; gap: 8px; }
+.urlrow input { flex: 1 1 auto; min-width: 0; }
+label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+input[type="text"], input[type="number"], select {
+  font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 7px 10px; width: 100%; min-width: 0;
+}
+input.big { font-family: var(--font-mono); font-size: 13.5px; padding: 10px 12px; border-width: 1.5px; }
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible, pre:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.status { display: flex; flex-direction: column; gap: 5px; }
+.status:empty { display: none; }
+.note { border-radius: 8px; padding: 6px 10px; font-size: 13px; line-height: 1.35; }
+.note.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.note.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.note b { font-weight: 600; }
+.note code { font-family: var(--font-mono); font-size: 12px; }
+
+.mtabs { display: none; gap: 4px; flex: none; }
+.mtab { flex: 1; font: inherit; font-size: 13px; font-weight: 600; background: var(--surface); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 7px; cursor: pointer; }
+.mtab[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+.bench { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 12px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; overflow: hidden; }
+.panel h2 { font-family: var(--font-display); font-size: 0.95rem; margin: 0; letter-spacing: -0.01em; flex: none; }
+#p-set { overflow-y: auto; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+.field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.field.span2 { grid-column: 1 / -1; }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.check { display: flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.check input { accent-color: var(--accent); margin: 0; }
+[hidden] { display: none !important; }
+
+.sketch { background: var(--surface-2); border: 1px dashed var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
+.mock {
+  --r: 1.7778; --maxh: clamp(56px, 13vh, 112px);
+  width: min(100%, calc(var(--maxh) * var(--r))); aspect-ratio: var(--r);
+  background: var(--surface); border: 1.5px solid var(--fg); border-radius: 7px; overflow: hidden;
+  display: flex; flex-direction: column; min-height: 40px;
+}
+.mock-top { display: flex; align-items: center; gap: 4px; padding: 3px 7px; border-bottom: 1.5px solid var(--fg); background: var(--surface-2); flex: none; }
+.mock-top i { width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid var(--fg); display: block; flex: none; }
+.mock-top em { font-style: normal; font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 3px; }
+.mock-body { flex: 1; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; color: var(--accent); font-size: 14px; text-align: center; padding: 2px; min-height: 0; overflow: hidden; }
+.sketch-cap { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; flex: none; }
+.tabs { display: flex; gap: 4px; }
+.tab { font: inherit; font-size: 12.5px; font-weight: 500; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 7px; padding: 4px 11px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.actions a { color: var(--accent); font-size: 13px; }
+.btn { font: inherit; font-weight: 600; font-size: 13.5px; background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+.btn:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); font-weight: 500; padding: 9px 14px; }
+
+pre.code {
+  flex: 1; min-height: 70px; margin: 0; background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 12px 14px;
+  font-family: var(--font-mono); font-size: 12px; line-height: 1.55; overflow: auto; white-space: pre; tab-size: 2;
+}
+.src-line { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
+.fine { color: var(--muted); font-size: 12px; margin: 0; flex: none; }
+
+footer { flex: none; text-align: center; font-size: 12px; color: var(--muted); padding-top: 2px; letter-spacing: 0.02em; }
+
+@media (max-width: 760px) {
+  body { font-size: 14px; }
+  header h1 { font-size: 1.3rem; }
+  header p { display: none; }
+  .mtabs { display: flex; }
+  .bench { grid-template-columns: 1fr; }
+  .bench[data-active="code"] #p-set, .bench[data-active="set"] #p-out { display: none; }
+  .fine { display: none; }
+  .mock { --maxh: clamp(56px, 12vh, 100px); }
+}
+@media (max-height: 640px) {
+  .fine { display: none; }
+  header p { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Iframe Maker</h1>
+      <p>Paste a link, get embed code.</p>
+    </div>
+  </header>
+
+  <section class="urlbar" aria-label="Link">
+    <div class="urlrow">
+      <input id="url" class="big" type="text" inputmode="url" autocomplete="off" spellcheck="false" value="https://www.youtube.com/watch?v=aqz-KE-bpKQ" placeholder="Paste a link, for example https://example.com/page" aria-label="Link to embed">
+      <button class="btn ghost" id="clear" type="button">Clear</button>
+    </div>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <div class="mtabs" role="tablist" aria-label="Section">
+    <button class="mtab" role="tab" id="mt-code" data-pane="code" aria-selected="true" type="button">Code</button>
+    <button class="mtab" role="tab" id="mt-set" data-pane="set" aria-selected="false" type="button">Settings</button>
+  </div>
+
+  <div class="bench" id="bench" data-active="code">
+    <section class="panel" id="p-set" aria-labelledby="h-set">
+      <h2 id="h-set">Settings</h2>
+
+      <div class="grid2">
+        <div class="field span2">
+          <label for="mode">Size</label>
+          <select id="mode">
+            <option value="fixed">Fixed width and height</option>
+            <option value="full">Full width, fixed height</option>
+            <option value="ratio">Full width, keep aspect ratio</option>
+          </select>
+        </div>
+        <div class="field" id="f-w"><label for="w">Width (px)</label><input id="w" type="number" min="50" max="4000" value="640"></div>
+        <div class="field" id="f-h"><label for="h">Height (px)</label><input id="h" type="number" min="50" max="4000" value="360"></div>
+        <div class="field" id="f-r" hidden>
+          <label for="ratio">Aspect ratio</label>
+          <select id="ratio">
+            <option value="16/9" selected>16:9 (video)</option>
+            <option value="4/3">4:3</option>
+            <option value="1/1">1:1</option>
+            <option value="9/16">9:16 (vertical)</option>
+            <option value="3/4">3:4 (document)</option>
+            <option value="21/9">21:9 (wide)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="radius">Corners</label>
+          <select id="radius">
+            <option value="0">Square</option>
+            <option value="8" selected>Rounded (8px)</option>
+            <option value="16">Very rounded (16px)</option>
+          </select>
+        </div>
+        <div class="field span2">
+          <label for="sandbox">Sandbox</label>
+          <select id="sandbox">
+            <option value="none">Off (site works normally)</option>
+            <option value="standard">Standard (scripts, forms, popups allowed)</option>
+            <option value="locked">Locked down (static content only)</option>
+          </select>
+        </div>
+        <div class="field span2">
+          <label for="title">Title (for screen readers)</label>
+          <input id="title" type="text" placeholder="Filled in from the link if left empty" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="checks">
+        <label class="check" title="Lets visitors open the frame fullscreen"><input type="checkbox" id="fs" checked><span>Fullscreen</span></label>
+        <label class="check" title="Waits until the frame is near the screen before loading"><input type="checkbox" id="lazy" checked><span>Lazy load</span></label>
+        <label class="check" title="Autoplay, picture-in-picture and clipboard write. Needed by most video players."><input type="checkbox" id="media"><span>Media permissions</span></label>
+      </div>
+    </section>
+
+    <section class="panel" id="p-out" aria-labelledby="h-out">
+      <h2 id="h-out">Your embed code</h2>
+
+      <div class="sketch" aria-hidden="true">
+        <div class="mock" id="mock">
+          <div class="mock-top"><i></i><i></i><i></i><em id="mock-host">example.com</em></div>
+          <div class="mock-body" id="mock-body">Frame</div>
+        </div>
+        <div class="sketch-cap" id="sketch-cap">640 × 360 px</div>
+      </div>
+
+      <div class="toolbar">
+        <div class="tabs" role="tablist" aria-label="Code format">
+          <button class="tab" role="tab" id="tab-html" aria-selected="true" data-fmt="html" type="button">HTML</button>
+          <button class="tab" role="tab" id="tab-jsx" aria-selected="false" data-fmt="jsx" type="button">React (JSX)</button>
+        </div>
+        <div class="actions">
+          <a id="open" href="#" target="_blank" rel="noopener noreferrer">Open link</a>
+          <button class="btn" id="copy" type="button">Copy code</button>
+        </div>
+      </div>
+
+      <pre class="code" id="code" tabindex="0" aria-labelledby="h-out"></pre>
+      <div class="src-line" id="srcline"></div>
+      <p class="fine">No live preview here: this page cannot load other sites. Paste the code into your own page to test it.</p>
+    </section>
+  </div>
+
+  <footer>Ufuk Korkmaz - 2026</footer>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var el = {
+    url: $('url'), clear: $('clear'), status: $('status'),
+    mode: $('mode'), w: $('w'), h: $('h'), ratio: $('ratio'), radius: $('radius'), title: $('title'),
+    sandbox: $('sandbox'), fs: $('fs'), lazy: $('lazy'), media: $('media'),
+    fW: $('f-w'), fH: $('f-h'), fR: $('f-r'),
+    mock: $('mock'), mockHost: $('mock-host'), mockBody: $('mock-body'), cap: $('sketch-cap'),
+    code: $('code'), copy: $('copy'), open: $('open'), srcline: $('srcline'), bench: $('bench')
+  };
+  var fmt = 'html';
+  var lastProvider = null;
+
+  /* ---------- link handling ---------- */
+  function normalize(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+    if (/^[\w.-]+:\d+(\/|$)/.test(raw) || !/^[a-z][a-z0-9+.-]*:/i.test(raw)) raw = 'https://' + raw;
+    var u;
+    try { u = new URL(raw); } catch (e) { return { error: 'That does not look like a web address. Check it for typos.' }; }
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return { error: 'Only http and https links can be embedded.' };
+    if (u.hostname.indexOf('.') === -1 && u.hostname !== 'localhost') return { error: 'That address has no domain name, for example example.com.' };
+    return { url: u };
+  }
+
+  function seconds(t) {
+    if (!t) return 0;
+    if (/^\d+$/.test(t)) return parseInt(t, 10);
+    var m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(t);
+    if (!m) return 0;
+    return (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0);
+  }
+  function last(path) { var p = path.split('/').filter(Boolean); return p[p.length - 1] || ''; }
+
+  function convert(u) {
+    var host = u.hostname.replace(/^www\./, '').replace(/^m\./, '');
+    var p = u.pathname, q = u.searchParams, id, m;
+
+    if (host === 'youtu.be' || host === 'youtube.com' || host === 'youtube-nocookie.com' || host === 'music.youtube.com') {
+      var start = seconds(q.get('t') || q.get('start'));
+      var base = 'https://www.youtube.com/embed/';
+      if (host === 'youtu.be') id = last(p);
+      else if (p === '/watch') id = q.get('v');
+      else if ((m = /^\/(shorts|embed|live|v)\/([\w-]+)/.exec(p))) id = m[2];
+      if (!id && p === '/playlist' && q.get('list')) {
+        return { provider: 'YouTube playlist', src: base + 'videoseries?list=' + encodeURIComponent(q.get('list')), mode: 'ratio', ratio: '16/9', media: true };
+      }
+      if (id) {
+        var s = base + encodeURIComponent(id) + (start ? '?start=' + start : '');
+        return { provider: 'YouTube', src: s, mode: 'ratio', ratio: '16/9', media: true };
+      }
+      return { provider: 'YouTube', src: null, hint: 'This YouTube link has no video in it. Open a video and copy its address.' };
+    }
+    if (host === 'vimeo.com' || host === 'player.vimeo.com') {
+      id = (/(\d{5,})/.exec(p) || [])[1];
+      if (id) return { provider: 'Vimeo', src: 'https://player.vimeo.com/video/' + id, mode: 'ratio', ratio: '16/9', media: true };
+    }
+    if (host === 'dailymotion.com') {
+      m = /\/video\/([\w]+)/.exec(p);
+      if (m) return { provider: 'Dailymotion', src: 'https://www.dailymotion.com/embed/video/' + m[1], mode: 'ratio', ratio: '16/9', media: true };
+    }
+    if (host === 'loom.com') {
+      m = /\/(?:share|embed)\/([\w]+)/.exec(p);
+      if (m) return { provider: 'Loom', src: 'https://www.loom.com/embed/' + m[1], mode: 'ratio', ratio: '16/9', media: true };
+    }
+    if (host === 'open.spotify.com') {
+      m = /\/(?:embed\/)?(track|album|playlist|episode|show|artist)\/(\w+)/.exec(p);
+      if (m) return { provider: 'Spotify', src: 'https://open.spotify.com/embed/' + m[1] + '/' + m[2], mode: 'full', height: m[1] === 'track' || m[1] === 'episode' ? 152 : 352, media: true };
+    }
+    if (host === 'soundcloud.com' && p.split('/').filter(Boolean).length >= 1) {
+      return { provider: 'SoundCloud', src: 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(u.origin + u.pathname), mode: 'full', height: 166, media: true };
+    }
+    if (host === 'codepen.io') {
+      m = /^\/([^/]+)\/(?:pen|full|details)\/(\w+)/.exec(p);
+      if (m) return { provider: 'CodePen', src: 'https://codepen.io/' + m[1] + '/embed/' + m[2] + '?default-tab=result', mode: 'full', height: 420 };
+    }
+    if (host === 'figma.com' && /^\/(file|design|proto|board|slides)\//.test(p)) {
+      return { provider: 'Figma', src: 'https://www.figma.com/embed?embed_host=share&url=' + encodeURIComponent(u.href), mode: 'ratio', ratio: '4/3' };
+    }
+    if (host === 'docs.google.com') {
+      m = /^\/(document|presentation|spreadsheets)\/d\/([\w-]+)/.exec(p);
+      if (m) {
+        var kind = m[1];
+        var tail = kind === 'presentation' ? '/embed' : '/preview';
+        return { provider: 'Google ' + (kind === 'document' ? 'Docs' : kind === 'presentation' ? 'Slides' : 'Sheets'),
+          src: 'https://docs.google.com/' + kind + '/d/' + m[2] + tail, mode: 'ratio', ratio: kind === 'presentation' ? '16/9' : '3/4',
+          hint: 'Share the file as "Anyone with the link can view", or visitors will see a sign-in page.' };
+      }
+    }
+    if (host === 'drive.google.com') {
+      m = /\/file\/d\/([\w-]+)/.exec(p);
+      if (m) return { provider: 'Google Drive file', src: 'https://drive.google.com/file/d/' + m[1] + '/preview', mode: 'ratio', ratio: '4/3',
+        hint: 'Share the file as "Anyone with the link can view".' };
+    }
+    if ((host === 'google.com' || host === 'maps.google.com') && (host === 'maps.google.com' || /^\/maps/.test(p))) {
+      var query = q.get('q') || q.get('query');
+      if (!query) { m = /\/maps\/(?:place|search)\/([^/@]+)/.exec(p); if (m) query = decodeURIComponent(m[1].replace(/\+/g, ' ')); }
+      if (query) return { provider: 'Google Maps', src: 'https://maps.google.com/maps?q=' + encodeURIComponent(query) + '&output=embed', mode: 'ratio', ratio: '4/3' };
+      return { provider: 'Google Maps', src: null, hint: 'No place found in this map link. Use a link with a place name.' };
+    }
+    if (host === 'maps.app.goo.gl' || host === 'goo.gl') {
+      return { provider: 'Google short link', src: null, hint: 'Short map links cannot be converted. Open it and copy the full address from the address bar.' };
+    }
+    return null;
+  }
+
+  var BLOCKERS = ['facebook.com', 'instagram.com', 'x.com', 'twitter.com', 'linkedin.com', 'github.com', 'amazon.com', 'netflix.com', 'reddit.com', 'tiktok.com', 'paypal.com', 'pinterest.com'];
+  function blocks(host) {
+    host = host.replace(/^www\./, '');
+    for (var i = 0; i < BLOCKERS.length; i++) {
+      if (host === BLOCKERS[i] || host.slice(-BLOCKERS[i].length - 1) === '.' + BLOCKERS[i]) return BLOCKERS[i];
+    }
+    if (host === 'google.com') return 'google.com';
+    return null;
+  }
+
+  /* ---------- code generation ---------- */
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function camel(s) { return s.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); }); }
+
+  var ALLOW = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+  var SANDBOX = { standard: 'allow-scripts allow-same-origin allow-popups allow-forms allow-presentation', locked: '' };
+
+  function clamp(v, d) { var n = parseInt(v, 10); return isNaN(n) ? d : Math.min(4000, Math.max(50, n)); }
+
+  function model(src, host) {
+    var mode = el.mode.value, r = parseInt(el.radius.value, 10);
+    var title = el.title.value.trim() || ('Embedded content from ' + host);
+    var attrs = [['src', src]];
+    var style = [];
+    var wrapper = null;
+
+    if (mode === 'fixed') {
+      attrs.push(['width', String(clamp(el.w.value, 640))], ['height', String(clamp(el.h.value, 360))]);
+      style.push(['max-width', '100%'], ['border', '0']);
+    } else if (mode === 'full') {
+      style.push(['width', '100%'], ['height', clamp(el.h.value, 360) + 'px'], ['border', '0']);
+    } else {
+      wrapper = [['position', 'relative'], ['width', '100%'], ['aspect-ratio', el.ratio.value]];
+      if (r) wrapper.push(['border-radius', r + 'px'], ['overflow', 'hidden']);
+      style.push(['position', 'absolute'], ['inset', '0'], ['width', '100%'], ['height', '100%'], ['border', '0']);
+    }
+    if (r && mode !== 'ratio') style.push(['border-radius', r + 'px']);
+
+    attrs.push(['title', title]);
+    if (el.lazy.checked) attrs.push(['loading', 'lazy']);
+    if (el.media.checked) attrs.push(['allow', ALLOW]);
+    if (el.fs.checked) attrs.push(['allowfullscreen', true]);
+    if (el.sandbox.value !== 'none') attrs.push(['sandbox', SANDBOX[el.sandbox.value]]);
+    attrs.push(['referrerpolicy', 'strict-origin-when-cross-origin']);
+    return { attrs: attrs, style: style, wrapper: wrapper };
+  }
+  function cssStr(pairs) { return pairs.map(function (p) { return p[0] + ':' + p[1] + ';'; }).join(''); }
+  function cssObj(pairs) { return '{{ ' + pairs.map(function (p) { return camel(p[0]) + ': ' + (/^\d+$/.test(p[1]) ? p[1] : "'" + p[1] + "'"); }).join(', ') + ' }}'; }
+
+  function renderHtml(m) {
+    var pad = m.wrapper ? '    ' : '  ';
+    var lines = ['<iframe'];
+    m.attrs.forEach(function (a) { lines.push(pad + (a[1] === true ? a[0] : a[0] + '="' + esc(a[1]) + '"')); });
+    lines.push(pad + 'style="' + cssStr(m.style) + '"');
+    var body = lines.join('\n') + '\n' + (m.wrapper ? '  ' : '') + '></iframe>';
+    if (!m.wrapper) return body;
+    return '<div style="' + cssStr(m.wrapper) + '">\n  ' + body.split('\n').join('\n  ').replace(/^ {2}/, '') + '\n</div>';
+  }
+  function renderJsx(m) {
+    var base = m.wrapper ? 6 : 4, pad = new Array(base + 3).join(' ');
+    var jl = ['<iframe'];
+    m.attrs.forEach(function (a) {
+      var n = a[0] === 'allowfullscreen' ? 'allowFullScreen' : a[0] === 'referrerpolicy' ? 'referrerPolicy' : a[0];
+      jl.push(pad + (a[1] === true ? n : n + '="' + esc(a[1]) + '"'));
+    });
+    jl.push(pad + 'style=' + cssObj(m.style));
+    var inner = jl.join('\n') + '\n' + new Array(base + 1).join(' ') + '/>';
+    var out = 'export default function Embed() {\n  return (\n';
+    if (m.wrapper) out += '    <div style=' + cssObj(m.wrapper) + '>\n      ' + inner + '\n    </div>\n';
+    else out += '    ' + inner + '\n';
+    return out + '  );\n}';
+  }
+
+  /* ---------- UI ---------- */
+  function note(kind, html) {
+    var d = document.createElement('div');
+    d.className = 'note ' + kind; d.innerHTML = html; return d;
+  }
+
+  function sketch(host, label, mode) {
+    var w = clamp(el.w.value, 640), h = clamp(el.h.value, 360), r, cap;
+    if (mode === 'fixed') { r = w / h; cap = w + ' × ' + h + ' px'; }
+    else if (mode === 'full') { r = 800 / h; cap = 'full width × ' + h + ' px'; }
+    else { var pr = el.ratio.value.split('/'); r = pr[0] / pr[1]; cap = 'full width · ' + pr[0] + ':' + pr[1]; }
+    el.mock.style.setProperty('--r', String(Math.max(0.3, Math.min(5, r))));
+    el.mockHost.textContent = host || 'example.com';
+    el.mockBody.textContent = label || 'Frame';
+    el.cap.textContent = cap;
+  }
+
+  function update() {
+    var raw = el.url.value, res = normalize(raw);
+    el.status.textContent = '';
+    el.open.hidden = true; el.srcline.textContent = '';
+
+    if (!res) {
+      el.code.textContent = 'Paste a link above to generate the code.';
+      sketch('', 'Frame', el.mode.value); return;
+    }
+    if (res.error) {
+      el.status.appendChild(note('warn', esc(res.error)));
+      el.code.textContent = 'No code yet. Fix the link above.';
+      sketch('', 'Frame', el.mode.value); return;
+    }
+
+    var u = res.url, host = u.hostname.replace(/^www\./, '');
+    var conv = convert(u);
+
+    if (conv && conv.provider !== lastProvider) {
+      lastProvider = conv.provider;
+      if (conv.mode) el.mode.value = conv.mode;
+      if (conv.ratio) el.ratio.value = conv.ratio;
+      if (conv.height) el.h.value = conv.height;
+      if (conv.media !== undefined) el.media.checked = !!conv.media;
+      syncMode();
+    } else if (!conv) { lastProvider = null; }
+
+    var src = u.href;
+    if (conv && conv.src) {
+      src = conv.src;
+      el.status.appendChild(note('ok', '<b>' + esc(conv.provider) + ' link detected.</b> Converted to the address that service uses for embedding.'));
+    } else if (conv && !conv.src) {
+      src = null;
+    }
+    if (conv && conv.hint) el.status.appendChild(note('warn', esc(conv.hint)));
+
+    if (!src) {
+      el.code.textContent = 'No code yet. Fix the link above.';
+      sketch(host, conv.provider, el.mode.value); return;
+    }
+
+    var b = !conv && blocks(host);
+    if (b) el.status.appendChild(note('warn', '<b>' + esc(b) + ' usually refuses to be framed.</b> The frame will most likely stay blank. Look for an embed option on the site itself.'));
+    if (u.protocol === 'http:') el.status.appendChild(note('warn', 'This link uses <code>http</code>, which browsers block inside <code>https</code> pages. Try the <code>https</code> version.'));
+
+    var m = model(src, host);
+    el.code.textContent = fmt === 'html' ? renderHtml(m) : renderJsx(m);
+    el.srcline.textContent = 'Frame address: ' + src;
+    el.open.href = u.href; el.open.hidden = false;
+    sketch(host, conv && conv.provider ? conv.provider : host, el.mode.value);
+  }
+
+  function syncMode() {
+    var m = el.mode.value;
+    el.fW.hidden = m !== 'fixed';
+    el.fH.hidden = m === 'ratio';
+    el.fR.hidden = m !== 'ratio';
+  }
+
+  /* events */
+  ['input', 'change'].forEach(function (ev) {
+    [el.url, el.w, el.h, el.ratio, el.radius, el.title, el.sandbox, el.fs, el.lazy, el.media].forEach(function (n) { n.addEventListener(ev, update); });
+  });
+  el.mode.addEventListener('change', function () { syncMode(); update(); });
+  el.clear.addEventListener('click', function () { el.url.value = ''; lastProvider = null; update(); el.url.focus(); });
+
+  document.querySelectorAll('.tab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      fmt = t.getAttribute('data-fmt');
+      document.querySelectorAll('.tab').forEach(function (o) { o.setAttribute('aria-selected', o === t ? 'true' : 'false'); });
+      update();
+    });
+  });
+  document.querySelectorAll('.mtab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      el.bench.setAttribute('data-active', t.getAttribute('data-pane'));
+      document.querySelectorAll('.mtab').forEach(function (o) { o.setAttribute('aria-selected', o === t ? 'true' : 'false'); });
+    });
+  });
+
+  el.copy.addEventListener('click', function () {
+    var text = el.code.textContent;
+    function done(ok) {
+      el.copy.textContent = ok ? 'Copied' : 'Press Ctrl+C to copy';
+      setTimeout(function () { el.copy.textContent = 'Copy code'; }, 1800);
+    }
+    function fallback() {
+      try {
+        var r = document.createRange(); r.selectNodeContents(el.code);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        done(false);
+      } catch (e) { done(false); }
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } catch (e) { fallback(); }
+  });
+
+  syncMode();
+  update();
+})();
+</script>
+
+</body></html>
