@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PDF Toolkit</title>
+<script>
+/* Apply saved theme before first paint (shared with the landing page). */
+try { var t = localStorage.getItem('tools-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+:root {
+  --bg: #f3f4fa;
+  --bg-glow: rgba(99, 102, 241, 0.10);
+  --surface: #ffffff;
+  --surface-2: #f6f7fc;
+  --fg: #151a2c;
+  --muted: #5d6680;
+  --line: #dfe2ee;
+  --accent: #4f46e5;
+  --accent-2: #7c3aed;
+  --accent-soft: rgba(79, 70, 229, 0.10);
+  --ok: #15803d;
+  --err: #c0392b;
+  --shadow: 0 1px 2px rgba(20, 26, 60, 0.05), 0 8px 24px -12px rgba(20, 26, 60, 0.16);
+  --shadow-up: 0 2px 4px rgba(20, 26, 60, 0.06), 0 18px 36px -16px rgba(79, 70, 229, 0.35);
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f1a; --bg-glow: rgba(124, 92, 255, 0.14); --surface: #131929; --surface-2: #19203a; --fg: #e8ecf6; --muted: #98a2bb; --line: #263049;
+    --accent: #8b8cff; --accent-2: #a78bfa; --accent-soft: rgba(139, 140, 255, 0.14);
+    --ok: #4cc38a; --err: #ff7b6b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    --shadow-up: 0 2px 4px rgba(0, 0, 0, 0.4), 0 18px 36px -16px rgba(139, 140, 255, 0.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f1a; --bg-glow: rgba(124, 92, 255, 0.14); --surface: #131929; --surface-2: #19203a; --fg: #e8ecf6; --muted: #98a2bb; --line: #263049;
+  --accent: #8b8cff; --accent-2: #a78bfa; --accent-soft: rgba(139, 140, 255, 0.14);
+  --ok: #4cc38a; --err: #ff7b6b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-up: 0 2px 4px rgba(0, 0, 0, 0.4), 0 18px 36px -16px rgba(139, 140, 255, 0.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { min-height: 100%; }
+body {
+  min-height: 100vh; margin: 0;
+  background: var(--bg) radial-gradient(1000px 480px at 80% -10%, var(--bg-glow), transparent 70%) no-repeat;
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: var(--font-body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: max(14px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column;
+}
+.wrap { flex: 1; width: 100%; max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* header */
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 11px; color: inherit; text-decoration: none; }
+.logo { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; color: #fff; flex: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 6px 16px -6px var(--accent); }
+.brand b { font-family: var(--font-display); font-size: 1.25rem; letter-spacing: -0.02em; }
+.head-actions { display: flex; align-items: center; gap: 8px; }
+.iconbtn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; box-shadow: var(--shadow); transition: color .15s, border-color .15s; text-decoration: none; font: inherit; }
+.iconbtn:hover { color: var(--fg); border-color: var(--accent); }
+
+/* hero */
+.hero { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; }
+.hero h1 { font-family: var(--font-display); font-size: clamp(1.9rem, 4.6vw, 2.9rem); line-height: 1.08; letter-spacing: -0.03em; margin: 0; }
+.hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero p { margin: 0; color: var(--muted); font-size: 1rem; max-width: 560px; }
+
+/* tabs (same look as the landing page chips) */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: 13px; font-weight: 500; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 15px; cursor: pointer; transition: color .15s, border-color .15s, background .15s; }
+.tab svg { width: 15px; height: 15px; }
+.tab:hover { color: var(--fg); border-color: var(--accent); }
+.tab[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+/* card */
+.card { display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.panel { display: flex; flex-direction: column; gap: 14px; }
+
+.drop { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 30px 16px; border: 1.5px dashed var(--line); border-radius: 14px; background: var(--surface-2); color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop:focus-within { box-shadow: 0 0 0 4px var(--accent-soft); border-color: var(--accent); }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.drop .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 8px 18px -8px var(--accent); margin-bottom: 4px; }
+.drop .ico svg { width: 20px; height: 20px; }
+.drop strong { color: var(--fg); font-family: var(--font-display); font-size: 1.02rem; font-weight: 700; }
+.drop span { font-size: 13px; }
+
+ul.files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+ul.files:empty { display: none; }
+ul.files li { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; }
+ul.files .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+ul.files .meta { color: var(--muted); font-size: 12px; font-family: var(--font-mono); white-space: nowrap; }
+.mini { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; font: inherit; font-size: 15px; line-height: 1; transition: color .15s, border-color .15s; }
+.mini:hover:not(:disabled) { color: var(--fg); border-color: var(--accent); }
+.mini:disabled { opacity: .35; cursor: default; }
+
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.field { flex: 1 1 220px; }
+label.lbl, .field label { display: block; font-size: 12.5px; font-weight: 500; color: var(--muted); margin-bottom: 5px; }
+input[type="text"], select { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; transition: border-color .15s, box-shadow .15s; }
+input[type="text"]::placeholder { color: var(--muted); opacity: .75; }
+input[type="text"]:focus, select:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; cursor: pointer; }
+.check input { width: 17px; height: 17px; accent-color: var(--accent); }
+
+.primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 16px; border: 0; border-radius: 14px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 10px 22px -10px var(--accent); transition: transform .15s, box-shadow .15s, opacity .15s; }
+.primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-up); }
+.primary:disabled { opacity: .45; cursor: default; box-shadow: none; }
+
+.note { margin: 0; color: var(--muted); font-size: 12.5px; }
+.status { min-height: 1.4em; font-size: 13.5px; font-weight: 500; }
+.status.ok { color: var(--ok); }
+.status.err { color: var(--err); }
+.status:empty { display: none; }
+
+footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacing: 0.02em; padding-top: 6px; margin-top: auto; }
+
+@media (max-width: 560px) { .card { padding: 16px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <a class="brand" href="index.html" aria-label="Back to Toolbox">
+      <div class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+      <b>Toolbox</b>
+    </a>
+    <div class="head-actions">
+      <a class="iconbtn" href="index.html" title="All tools" aria-label="All tools"><svg class="i" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+      <button class="iconbtn" id="theme" type="button" title="Switch light / dark" aria-label="Switch light or dark theme">
+        <svg class="i" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1>PDF tools that <span>stay private</span>.</h1>
+    <p>Merge, split, rotate and optimize PDFs. Files are processed in your browser and never uploaded.</p>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="PDF tool">
+    <button class="tab" role="tab" data-tab="merge" aria-selected="true"><svg class="i" viewBox="0 0 24 24"><path d="M8 6l4-4 4 4M12 2v10.3a4 4 0 01-1.17 2.87L4 22M20 22l-5-5"/></svg>Merge</button>
+    <button class="tab" role="tab" data-tab="split" aria-selected="false"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M8 3H3v5M12 22v-8.3a4 4 0 00-1.17-2.87L3 3M15 9l6-6"/></svg>Split</button>
+    <button class="tab" role="tab" data-tab="rotate" aria-selected="false"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5"/></svg>Rotate</button>
+    <button class="tab" role="tab" data-tab="compress" aria-selected="false"><svg class="i" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 01-2 2H3M21 8h-3a2 2 0 01-2-2V3M3 16h3a2 2 0 012 2v3M16 21v-3a2 2 0 012-2h3"/></svg>Optimize</button>
+  </div>
+
+  <main class="card">
+    <!-- MERGE -->
+    <section class="panel" id="panel-merge">
+      <label class="drop" data-drop="merge">
+        <input type="file" accept="application/pdf,.pdf" multiple>
+        <div class="ico" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <strong>Choose PDFs or drop them here</strong>
+        <span>Files are merged in the order listed.</span>
+      </label>
+      <ul class="files" id="list-merge"></ul>
+      <button class="primary" id="go-merge" disabled>Merge PDFs</button>
+    </section>
+
+    <!-- SPLIT -->
+    <section class="panel" id="panel-split" hidden>
+      <label class="drop" data-drop="split">
+        <input type="file" accept="application/pdf,.pdf">
+        <div class="ico" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <strong>Choose a PDF or drop it here</strong>
+        <span>Then pick which pages to keep.</span>
+      </label>
+      <ul class="files" id="list-split"></ul>
+      <div class="row">
+        <div class="field">
+          <label for="split-mode">Mode</label>
+          <select id="split-mode">
+            <option value="extract">Extract pages into one PDF</option>
+            <option value="ranges">One PDF per range</option>
+            <option value="each">Every page as its own PDF</option>
+          </select>
+        </div>
+        <div class="field" id="split-ranges-field">
+          <label for="split-ranges">Pages (e.g. 1-3, 5, 8-10)</label>
+          <input type="text" id="split-ranges" placeholder="1-3, 5, 8-10" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <button class="primary" id="go-split" disabled>Split PDF</button>
+      <p class="note">Several output files download one after another. Your browser may ask permission for multiple downloads.</p>
+    </section>
+
+    <!-- ROTATE -->
+    <section class="panel" id="panel-rotate" hidden>
+      <label class="drop" data-drop="rotate">
+        <input type="file" accept="application/pdf,.pdf">
+        <div class="ico" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <strong>Choose a PDF or drop it here</strong>
+        <span>Rotate every page or just the ones you pick.</span>
+      </label>
+      <ul class="files" id="list-rotate"></ul>
+      <div class="row">
+        <div class="field">
+          <label for="rotate-angle">Rotation</label>
+          <select id="rotate-angle">
+            <option value="90">90° clockwise</option>
+            <option value="180">180°</option>
+            <option value="270">90° counter-clockwise</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="rotate-pages">Pages (leave empty for all)</label>
+          <input type="text" id="rotate-pages" placeholder="all pages" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <button class="primary" id="go-rotate" disabled>Rotate PDF</button>
+    </section>
+
+    <!-- COMPRESS -->
+    <section class="panel" id="panel-compress" hidden>
+      <label class="drop" data-drop="compress">
+        <input type="file" accept="application/pdf,.pdf">
+        <div class="ico" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <strong>Choose a PDF or drop it here</strong>
+        <span>Lossless: quality stays exactly the same.</span>
+      </label>
+      <ul class="files" id="list-compress"></ul>
+      <label class="check"><input type="checkbox" id="compress-meta"> Also remove document metadata (title, author, etc.)</label>
+      <button class="primary" id="go-compress" disabled>Optimize PDF</button>
+      <p class="note">This repacks the PDF's internal structure without touching images, fonts or text, so savings are typically modest and depend on how the file was created.</p>
+    </section>
+
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </main>
+
+  <footer>Ufuk Korkmaz - 2026</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var statusEl = $('#status');
+  function setStatus(msg, type) { statusEl.textContent = msg || ''; statusEl.className = 'status ' + (type || ''); }
+
+  /* light / dark (shared with the landing page) */
+  var root = document.documentElement;
+  $('#theme').addEventListener('click', function () {
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('tools-theme', next); } catch (e) {}
+  });
+
+  if (typeof PDFLib === 'undefined') {
+    setStatus('Could not load the PDF library. Check your connection and reload.', 'err');
+    return;
+  }
+  var PDFDocument = PDFLib.PDFDocument, degrees = PDFLib.degrees;
+
+  var state = { merge: [], split: null, rotate: null, compress: null };
+
+  /* ---------- helpers ---------- */
+  function fmt(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1048576).toFixed(2) + ' MB';
+  }
+  function baseName(n) { return n.replace(/\.pdf$/i, ''); }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function isPdf(f) { return f.type === 'application/pdf' || /\.pdf$/i.test(f.name); }
+
+  async function loadPdf(file) {
+    try {
+      var buf = await file.arrayBuffer();
+      return await PDFDocument.load(buf, { updateMetadata: false });
+    } catch (e) {
+      throw new Error('Could not open "' + file.name + '". It may be password-protected, encrypted or damaged.');
+    }
+  }
+
+  function download(bytes, name) {
+    var blob = new Blob([bytes], { type: 'application/pdf' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  }
+
+  function parseRanges(text, total) {
+    var out = [];
+    text.split(',').map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (part) {
+      var m = part.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+      if (!m) throw new Error('"' + part + '" is not a valid page or range.');
+      var a = +m[1], b = m[2] ? +m[2] : a;
+      if (a < 1 || b < 1 || a > total || b > total) throw new Error('"' + part + '" is outside the document (1–' + total + ').');
+      var idx = [], i;
+      if (a <= b) for (i = a; i <= b; i++) idx.push(i - 1);
+      else for (i = a; i >= b; i--) idx.push(i - 1);
+      out.push(idx);
+    });
+    if (!out.length) throw new Error('Enter at least one page or range.');
+    return out;
+  }
+
+  async function busy(btn, fn) {
+    var label = btn.innerHTML;
+    btn.disabled = true; btn.textContent = 'Working…'; setStatus('');
+    try { await fn(); }
+    catch (e) { setStatus(e.message || 'Something went wrong.', 'err'); }
+    finally { btn.innerHTML = label; refreshButtons(); }
+  }
+
+  /* ---------- tabs ---------- */
+  document.querySelectorAll('.tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (t) { t.setAttribute('aria-selected', t === tab ? 'true' : 'false'); });
+      document.querySelectorAll('.panel').forEach(function (p) { p.hidden = true; });
+      $('#panel-' + tab.dataset.tab).hidden = false;
+      setStatus('');
+    });
+  });
+
+  /* ---------- dropzones ---------- */
+  document.querySelectorAll('[data-drop]').forEach(function (zone) {
+    var key = zone.dataset.drop, input = $('input', zone);
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('over'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove('over'); });
+    });
+    zone.addEventListener('drop', function (e) { addFiles(key, e.dataTransfer.files); });
+    input.addEventListener('change', function () { addFiles(key, input.files); input.value = ''; });
+  });
+
+  async function addFiles(key, fileList) {
+    var files = Array.prototype.filter.call(fileList, isPdf);
+    if (!files.length) { setStatus('Please choose PDF files.', 'err'); return; }
+    setStatus('');
+    try {
+      if (key === 'merge') {
+        for (var i = 0; i < files.length; i++) state.merge.push({ file: files[i] });
+      } else {
+        var doc = await loadPdf(files[0]);
+        state[key] = { file: files[0], pages: doc.getPageCount() };
+      }
+    } catch (e) { setStatus(e.message, 'err'); }
+    renderLists(); refreshButtons();
+  }
+
+  /* ---------- rendering ---------- */
+  function renderLists() {
+    var ml = $('#list-merge'); ml.innerHTML = '';
+    state.merge.forEach(function (item, i) {
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="name"></span><span class="meta"></span>' +
+        '<button class="mini" data-act="up" title="Move up" aria-label="Move up">↑</button>' +
+        '<button class="mini" data-act="down" title="Move down" aria-label="Move down">↓</button>' +
+        '<button class="mini" data-act="rm" title="Remove" aria-label="Remove">×</button>';
+      $('.name', li).textContent = item.file.name;
+      $('.meta', li).textContent = fmt(item.file.size);
+      $('[data-act="up"]', li).disabled = i === 0;
+      $('[data-act="down"]', li).disabled = i === state.merge.length - 1;
+      li.addEventListener('click', function (e) {
+        var act = e.target.dataset && e.target.dataset.act;
+        if (!act) return;
+        if (act === 'rm') state.merge.splice(i, 1);
+        if (act === 'up' && i > 0) state.merge.splice(i - 1, 0, state.merge.splice(i, 1)[0]);
+        if (act === 'down' && i < state.merge.length - 1) state.merge.splice(i + 1, 0, state.merge.splice(i, 1)[0]);
+        renderLists(); refreshButtons();
+      });
+      ml.appendChild(li);
+    });
+
+    ['split', 'rotate', 'compress'].forEach(function (key) {
+      var ul = $('#list-' + key); ul.innerHTML = '';
+      var s = state[key]; if (!s) return;
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="name"></span><span class="meta"></span><button class="mini" title="Remove" aria-label="Remove">×</button>';
+      $('.name', li).textContent = s.file.name;
+      $('.meta', li).textContent = s.pages + (s.pages === 1 ? ' page · ' : ' pages · ') + fmt(s.file.size);
+      $('button', li).addEventListener('click', function () { state[key] = null; renderLists(); refreshButtons(); });
+      ul.appendChild(li);
+    });
+  }
+
+  function refreshButtons() {
+    $('#go-merge').disabled = state.merge.length < 2;
+    $('#go-split').disabled = !state.split;
+    $('#go-rotate').disabled = !state.rotate;
+    $('#go-compress').disabled = !state.compress;
+  }
+
+  $('#split-mode').addEventListener('change', function () {
+    $('#split-ranges-field').hidden = this.value === 'each';
+  });
+
+  /* ---------- MERGE ---------- */
+  $('#go-merge').addEventListener('click', function () {
+    busy(this, async function () {
+      var out = await PDFDocument.create();
+      for (var i = 0; i < state.merge.length; i++) {
+        var src = await loadPdf(state.merge[i].file);
+        var pages = await out.copyPages(src, src.getPageIndices());
+        pages.forEach(function (p) { out.addPage(p); });
+      }
+      var bytes = await out.save({ useObjectStreams: true });
+      download(bytes, 'merged.pdf');
+      setStatus('Merged ' + state.merge.length + ' files (' + out.getPageCount() + ' pages, ' + fmt(bytes.length) + ').', 'ok');
+    });
+  });
+
+  /* ---------- SPLIT ---------- */
+  async function extract(src, idx) {
+    var out = await PDFDocument.create();
+    var pages = await out.copyPages(src, idx);
+    pages.forEach(function (p) { out.addPage(p); });
+    return out.save({ useObjectStreams: true });
+  }
+
+  $('#go-split').addEventListener('click', function () {
+    busy(this, async function () {
+      var s = state.split, src = await loadPdf(s.file), mode = $('#split-mode').value, name = baseName(s.file.name);
+      if (mode === 'extract') {
+        var groups = parseRanges($('#split-ranges').value, s.pages);
+        var flat = [].concat.apply([], groups);
+        download(await extract(src, flat), name + '-extract.pdf');
+        setStatus('Extracted ' + flat.length + ' pages.', 'ok');
+      } else if (mode === 'ranges') {
+        var rs = parseRanges($('#split-ranges').value, s.pages);
+        for (var i = 0; i < rs.length; i++) {
+          download(await extract(src, rs[i]), name + '-part' + (i + 1) + '.pdf');
+          await sleep(350);
+        }
+        setStatus('Created ' + rs.length + ' files.', 'ok');
+      } else {
+        for (var p = 0; p < s.pages; p++) {
+          download(await extract(src, [p]), name + '-page' + (p + 1) + '.pdf');
+          await sleep(350);
+        }
+        setStatus('Created ' + s.pages + ' files.', 'ok');
+      }
+    });
+  });
+
+  /* ---------- ROTATE ---------- */
+  $('#go-rotate').addEventListener('click', function () {
+    busy(this, async function () {
+      var s = state.rotate, doc = await loadPdf(s.file), angle = +$('#rotate-angle').value;
+      var text = $('#rotate-pages').value.trim();
+      var targets = text ? [].concat.apply([], parseRanges(text, s.pages)) : doc.getPageIndices();
+      var pages = doc.getPages();
+      targets.forEach(function (i) {
+        var cur = pages[i].getRotation().angle;
+        pages[i].setRotation(degrees((((cur + angle) % 360) + 360) % 360));
+      });
+      download(await doc.save({ useObjectStreams: true }), baseName(s.file.name) + '-rotated.pdf');
+      setStatus('Rotated ' + targets.length + (targets.length === 1 ? ' page.' : ' pages.'), 'ok');
+    });
+  });
+
+  /* ---------- OPTIMIZE (lossless) ---------- */
+  $('#go-compress').addEventListener('click', function () {
+    busy(this, async function () {
+      var s = state.compress, doc = await loadPdf(s.file);
+      if ($('#compress-meta').checked) {
+        doc.setTitle(''); doc.setAuthor(''); doc.setSubject('');
+        doc.setKeywords([]); doc.setCreator(''); doc.setProducer('');
+      }
+      var bytes = await doc.save({ useObjectStreams: true });
+      if (bytes.length >= s.file.size) {
+        setStatus('This file is already optimized. A smaller version isn’t possible without lowering image quality, so nothing was downloaded.', '');
+        return;
+      }
+      download(bytes, baseName(s.file.name) + '-optimized.pdf');
+      var saved = (1 - bytes.length / s.file.size) * 100;
+      setStatus('Reduced from ' + fmt(s.file.size) + ' to ' + fmt(bytes.length) + ' (' + saved.toFixed(1) + '% smaller), no quality loss.', 'ok');
+    });
+  });
+
+  refreshButtons();
+})();
+</script>
+</body>
+</html>
