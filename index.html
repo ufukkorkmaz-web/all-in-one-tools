@@ -157,6 +157,31 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
 /* To add a tool: put its .html file next to this page and add one entry here. */
 var TOOLS = [
   {
+    name: 'Image Compressor to Exact KB',
+    desc: 'Reduce photos toward a 50KB, 100KB or 200KB size limit with local JPG or WebP compression.',
+    href: 'image-compressor.html', cat: 'Images & media', tags: ['image','compress','kb','jpg','webp'],
+    colors: ['#0891b2','#4f46e5'], icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 16l3-4 3 2 4-5M8 7h.01"/>'
+  },
+  {
+    name: 'PDF Compressor to Target Size',
+    desc: 'Compress scanned PDFs toward a file-size limit. Pages become images; text is not retained.',
+    href: 'pdf-compressor.html', cat: 'Documents', tags: ['pdf','compress','kb','size','scan'],
+    colors: ['#ef4444','#f97316'], icon: '<path d="M6 2h9l5 5v15H6zM15 2v5h5M9 13h8M9 17h5"/>'
+  },
+  {
+    name: 'Image Resizer to Exact Pixels',
+    desc: 'Set exact width and height, then fit, crop or stretch and download a JPG, PNG or WebP.',
+    href: 'image-resizer.html', cat: 'Images & media', tags: ['resize','dimensions','pixels','crop','image'],
+    colors: ['#10b981','#0ea5e9'], icon: '<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M2 9V2h7M15 22h7v-7"/>'
+  },
+  {
+    name: 'Video Compressor',
+    desc: 'Lower video resolution and bitrate in your browser; export WebM when supported.',
+    href: 'video-compressor.html', cat: 'Images & media', tags: ['video','compress','webm','bitrate','mp4'],
+    colors: ['#8b5cf6','#ec4899'], icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/>'
+  },
+
+  {
     name: 'Iframe Maker',
     desc: 'Paste a link, see it live and copy ready-to-use embed code for YouTube, Maps, Docs, Spotify and more.',
     href: 'iframe-maker.html',
