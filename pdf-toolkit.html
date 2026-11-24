@@ -193,8 +193,8 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
           <label for="split-mode">Mode</label>
           <select id="split-mode">
             <option value="extract">Extract pages into one PDF</option>
-            <option value="ranges">One PDF per range</option>
-            <option value="each">Every page as its own PDF</option>
+            <option value="ranges">One PDF per range (ZIP)</option>
+            <option value="each">Every page as its own PDF (ZIP)</option>
           </select>
         </div>
         <div class="field" id="split-ranges-field">
@@ -203,7 +203,7 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
         </div>
       </div>
       <button class="primary" id="go-split" disabled>Split PDF</button>
-      <p class="note">Several output files download one after another. Your browser may ask permission for multiple downloads.</p>
+      <p class="note" id="split-note"></p>
     </section>
 
     <!-- ROTATE -->
@@ -295,14 +295,61 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
     }
   }
 
-  function download(bytes, name) {
-    var blob = new Blob([bytes], { type: 'application/pdf' });
+  function download(bytes, name) { downloadBlob(new Blob([bytes], { type: 'application/pdf' }), name); }
+  function downloadBlob(blob, name) {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url; a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
   }
+
+  /* ---------- minimal ZIP writer (store only; PDFs are already compressed) ---------- */
+  var crcTable = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function crc32(buf) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < buf.length; i++) c = crcTable[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function makeZip(files) {
+    if (files.length > 65535) throw new Error('Too many pages for a single ZIP (limit 65,535).');
+    var enc = new TextEncoder(), parts = [], central = [], offset = 0, d = new Date();
+    var dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    var dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    files.forEach(function (f) {
+      var nameBytes = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+      var lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+      lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true); lh.setUint32(14, crc, true);
+      lh.setUint32(18, size, true); lh.setUint32(22, size, true); lh.setUint16(26, nameBytes.length, true); lh.setUint16(28, 0, true);
+      parts.push(new Uint8Array(lh.buffer), nameBytes, f.data);
+      var ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+      ch.setUint16(12, dosTime, true); ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true);
+      ch.setUint32(20, size, true); ch.setUint32(24, size, true); ch.setUint16(28, nameBytes.length, true);
+      ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true);
+      ch.setUint32(38, 0, true); ch.setUint32(42, offset, true);
+      central.push(new Uint8Array(ch.buffer), nameBytes);
+      offset += 30 + nameBytes.length + size;
+    });
+    var centralSize = central.reduce(function (s, p) { return s + p.length; }, 0);
+    var end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(4, 0, true); end.setUint16(6, 0, true);
+    end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, centralSize, true); end.setUint32(16, offset, true); end.setUint16(20, 0, true);
+    return new Blob(parts.concat(central, [new Uint8Array(end.buffer)]), { type: 'application/zip' });
+  }
+  function pad(n, total) { var w = String(total).length; var s = String(n); while (s.length < w) s = '0' + s; return s; }
+  function tick() { return new Promise(function (r) { setTimeout(r, 0); }); }
+  function safeName(n) { return n.replace(/[\\\/:*?"<>|]+/g, '_'); }
 
   function parseRanges(text, total) {
     var out = [];
@@ -409,9 +456,18 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
     $('#go-compress').disabled = !state.compress;
   }
 
-  $('#split-mode').addEventListener('change', function () {
-    $('#split-ranges-field').hidden = this.value === 'each';
-  });
+  var splitNotes = {
+    extract: 'Pick the pages to keep and download them as a single PDF.',
+    ranges: 'Each range becomes its own PDF. You get one ZIP with all of them.',
+    each: 'No page range needed. You get one ZIP with a separate PDF for every page.'
+  };
+  function updateSplitMode() {
+    var m = $('#split-mode').value;
+    $('#split-ranges-field').hidden = m === 'each';
+    $('#split-note').textContent = splitNotes[m];
+  }
+  $('#split-mode').addEventListener('change', updateSplitMode);
+  updateSplitMode();
 
   /* ---------- MERGE ---------- */
   $('#go-merge').addEventListener('click', function () {
@@ -446,17 +502,25 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
         setStatus('Extracted ' + flat.length + ' pages.', 'ok');
       } else if (mode === 'ranges') {
         var rs = parseRanges($('#split-ranges').value, s.pages);
+        var rfiles = [];
         for (var i = 0; i < rs.length; i++) {
-          download(await extract(src, rs[i]), name + '-part' + (i + 1) + '.pdf');
-          await sleep(350);
+          setStatus('Creating file ' + (i + 1) + ' of ' + rs.length + '…');
+          rfiles.push({ name: safeName(name) + '-part-' + pad(i + 1, rs.length) + '.pdf', data: await extract(src, rs[i]) });
+          await tick();
         }
-        setStatus('Created ' + rs.length + ' files.', 'ok');
+        var rzip = makeZip(rfiles);
+        downloadBlob(rzip, safeName(name) + '-parts.zip');
+        setStatus('Created a ZIP with ' + rs.length + (rs.length === 1 ? ' PDF' : ' PDFs') + ' (' + fmt(rzip.size) + ').', 'ok');
       } else {
+        var pfiles = [];
         for (var p = 0; p < s.pages; p++) {
-          download(await extract(src, [p]), name + '-page' + (p + 1) + '.pdf');
-          await sleep(350);
+          setStatus('Splitting page ' + (p + 1) + ' of ' + s.pages + '…');
+          pfiles.push({ name: safeName(name) + '-page-' + pad(p + 1, s.pages) + '.pdf', data: await extract(src, [p]) });
+          await tick();
         }
-        setStatus('Created ' + s.pages + ' files.', 'ok');
+        var pzip = makeZip(pfiles);
+        downloadBlob(pzip, safeName(name) + '-pages.zip');
+        setStatus('Created a ZIP with ' + s.pages + (s.pages === 1 ? ' PDF' : ' PDFs') + ' (' + fmt(pzip.size) + ').', 'ok');
       }
     });
   });
