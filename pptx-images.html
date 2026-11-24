@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PPTX Image Extractor</title>
+<title>PPTX Media Extractor</title>
 <script>
 /* Apply saved theme before first paint (shared with the landing page). */
 try { var t = localStorage.getItem('tools-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
@@ -138,8 +138,8 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
   </header>
 
   <section class="hero">
-    <h1>Pull images out of <span>any slide deck</span>.</h1>
-    <p>Drop a PowerPoint file and download every picture inside as a PNG, bundled in one ZIP. Everything runs in your browser and nothing is uploaded.</p>
+    <h1>Pull media out of <span>any slide deck</span>.</h1>
+    <p>Drop a PowerPoint file and download its images as PNGs, plus any video and audio, bundled in one ZIP. Everything runs in your browser and nothing is uploaded.</p>
   </section>
 
   <main class="card">
@@ -152,12 +152,13 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
     <ul class="files" id="list"></ul>
 
     <div class="opts" id="opts" hidden>
+      <label class="check" id="img-wrap"><input type="checkbox" id="opt-img" checked> <span id="img-label"></span></label>
+      <label class="check" id="av-wrap" hidden><input type="checkbox" id="opt-av" checked> <span id="av-label"></span></label>
       <label class="check"><input type="checkbox" id="opt-slide" checked> Name files by slide (e.g. slide-03-image7.png)</label>
-      <label class="check" id="av-wrap" hidden><input type="checkbox" id="opt-av"> <span id="av-label"></span></label>
     </div>
 
-    <button class="primary" id="go" disabled>Extract images</button>
-    <p class="note">Each picture is saved once, even if it appears on several slides. PNGs are copied untouched; JPG, GIF, BMP, WebP and SVG are converted to PNG (GIFs keep their first frame). Formats a browser can’t draw, such as EMF, WMF and TIFF, are kept as-is in an “originals” folder.</p>
+    <button class="primary" id="go" disabled>Extract &amp; download ZIP</button>
+    <p class="note">Each file is saved once, even if it appears on several slides. PNGs are copied untouched; JPG, GIF, BMP, WebP and SVG are converted to PNG (GIFs keep their first frame). Formats a browser can’t draw, such as EMF, WMF and TIFF, are kept as-is in an “originals” folder. Video and audio are copied byte for byte into “video” and “audio” folders, with no re-encoding and no quality loss. Media that is only linked (a YouTube clip, or a file stored outside the deck) isn’t inside the file, so it can’t be extracted.</p>
     <div class="status" id="status" role="status" aria-live="polite"></div>
   </main>
 
@@ -226,7 +227,8 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
 
   var CONVERTIBLE = { png: 1, jpg: 1, jpeg: 1, jpe: 1, gif: 1, bmp: 1, webp: 1, svg: 1 };
   var RAW_IMAGE = { emf: 1, wmf: 1, tif: 1, tiff: 1, wdp: 1, jxr: 1, hdp: 1, ico: 1 };
-  var AV = { mp4: 1, m4v: 1, mov: 1, avi: 1, wmv: 1, mpg: 1, mpeg: 1, mp3: 1, wav: 1, m4a: 1, wma: 1, mid: 1, midi: 1, ogg: 1, oga: 1, webm: 1, aac: 1, flac: 1 };
+  var VIDEO = { mp4: 1, m4v: 1, mov: 1, qt: 1, avi: 1, wmv: 1, asf: 1, mpg: 1, mpeg: 1, mkv: 1, flv: 1, webm: 1, ogv: 1, '3gp': 1, '3g2': 1 };
+  var AUDIO = { mp3: 1, wav: 1, m4a: 1, m4b: 1, wma: 1, mid: 1, midi: 1, ogg: 1, oga: 1, aac: 1, flac: 1, aif: 1, aiff: 1, au: 1, snd: 1, mp2: 1, mka: 1 };
 
   function relTargets(xml) {
     var out = [];
@@ -296,7 +298,7 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
     }).forEach(function (path) {
       var base = path.slice(path.lastIndexOf('/') + 1), dot = base.lastIndexOf('.');
       var ext = dot >= 0 ? base.slice(dot + 1).toLowerCase() : '';
-      var kind = CONVERTIBLE[ext] ? 'image' : RAW_IMAGE[ext] ? 'rawimage' : AV[ext] ? 'av' : null;
+      var kind = CONVERTIBLE[ext] ? 'image' : RAW_IMAGE[ext] ? 'rawimage' : VIDEO[ext] ? 'video' : AUDIO[ext] ? 'audio' : null;
       if (!kind) return;
       items.push({ path: path, base: base, ext: ext, kind: kind, size: zip.entries[path].usize, prefix: prefixOf[base] || '' });
     });
@@ -399,27 +401,35 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
   /* ---------- state + UI ---------- */
   var state = null; /* { file, zip, plan } */
 
-  function refresh() {
-    var n = state ? state.plan.items.filter(function (i) { return i.kind !== 'av'; }).length : 0;
-    var av = state ? state.plan.items.filter(function (i) { return i.kind === 'av'; }).length : 0;
-    $('#go').disabled = !state || (n + av === 0);
+  function isAv(it) { return it.kind === 'video' || it.kind === 'audio'; }
+  function selected() {
+    if (!state) return [];
+    var wantImg = $('#opt-img').checked, wantAv = $('#opt-av').checked;
+    return state.plan.items.filter(function (it) { return isAv(it) ? wantAv : wantImg; });
   }
+  function refresh() { $('#go').disabled = selected().length === 0; }
 
   function render() {
     var ul = $('#list'); ul.innerHTML = '';
     $('#opts').hidden = !state;
     if (!state) return;
-    var imgs = state.plan.items.filter(function (i) { return i.kind !== 'av'; });
-    var avs = state.plan.items.filter(function (i) { return i.kind === 'av'; });
+    var imgs = state.plan.items.filter(function (i) { return !isAv(i); });
+    var avs = state.plan.items.filter(isAv);
     var li = document.createElement('li');
     li.innerHTML = '<span class="name"></span><span class="meta"></span><button class="mini" title="Remove" aria-label="Remove">×</button>';
     $('.name', li).textContent = state.file.name;
-    $('.meta', li).textContent = imgs.length + (imgs.length === 1 ? ' image · ' : ' images · ') + fmt(state.file.size);
+    $('.meta', li).textContent = imgs.length + (imgs.length === 1 ? ' image' : ' images') + (avs.length ? ' · ' + avs.length + ' video/audio' : '') + ' · ' + fmt(state.file.size);
     $('button', li).addEventListener('click', function () { state = null; setStatus(''); render(); refresh(); });
     ul.appendChild(li);
-    $('#av-wrap').hidden = avs.length === 0;
+    var imgSize = imgs.reduce(function (s, i) { return s + i.size; }, 0);
     var avSize = avs.reduce(function (s, i) { return s + i.size; }, 0);
-    $('#av-label').textContent = 'Also include video & audio (' + avs.length + (avs.length === 1 ? ' file, ' : ' files, ') + fmt(avSize) + ')';
+    var nVideo = avs.filter(function (i) { return i.kind === 'video'; }).length, nAudio = avs.length - nVideo, avParts = [];
+    if (nVideo) avParts.push(nVideo + (nVideo === 1 ? ' video' : ' videos'));
+    if (nAudio) avParts.push(nAudio + (nAudio === 1 ? ' audio file' : ' audio files'));
+    $('#img-wrap').hidden = imgs.length === 0;
+    $('#img-label').textContent = 'Images, saved as PNG (' + imgs.length + (imgs.length === 1 ? ' file, ' : ' files, ') + fmt(imgSize) + ')';
+    $('#av-wrap').hidden = avs.length === 0;
+    $('#av-label').textContent = 'Video & audio, original files (' + avParts.join(' and ') + ', ' + fmt(avSize) + ')';
   }
 
   async function addFile(fileList) {
@@ -436,7 +446,7 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
       if (!zip.has('ppt/presentation.xml')) throw new Error('This ZIP file isn’t a PowerPoint presentation.');
       var plan = await buildPlan(zip);
       state = { file: f, zip: zip, plan: plan };
-      if (!plan.items.length) setStatus('No images were found in this presentation.', '');
+      if (!plan.items.length) setStatus('No images, video or audio were found in this presentation.', '');
     } catch (e) {
       state = null; setStatus(e.message || 'Could not read this file.', 'err');
     }
@@ -456,8 +466,12 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
   /* ---------- extract ---------- */
   $('#go').addEventListener('click', function () {
     busy(this, async function () {
-      var plan = state.plan, byName = $('#opt-slide').checked, withAv = $('#opt-av').checked && !$('#av-wrap').hidden;
-      var files = [], used = {}, nPng = 0, nConv = 0, nRaw = 0, nAv = 0, nFail = 0, i;
+      var byName = $('#opt-slide').checked, todo = selected();
+      var files = [], used = {}, nPng = 0, nConv = 0, nRaw = 0, nVid = 0, nAud = 0, nFail = 0, total = 0, i;
+      todo.forEach(function (it) { total += it.size; });
+      if (total > 1.5 * 1024 * 1024 * 1024) {
+        throw new Error('The selected files add up to ' + fmt(total) + ', which is too large for one ZIP in a browser. Untick “Video & audio” (or “Images”) and extract them separately.');
+      }
 
       function uniq(n) {
         var cand = n, k = 2;
@@ -466,7 +480,6 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
         return cand;
       }
 
-      var todo = plan.items.filter(function (it) { return it.kind !== 'av' || withAv; });
       for (i = 0; i < todo.length; i++) {
         var it = todo[i], prefix = byName ? it.prefix : '';
         var stem = safeName(it.base.replace(/\.[^.]+$/, ''));
@@ -485,7 +498,8 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
         } else if (it.kind === 'rawimage') {
           files.push({ name: uniq('originals/' + prefix + safeName(it.base)), data: data }); nRaw++;
         } else {
-          files.push({ name: uniq('media/' + prefix + safeName(it.base)), data: data }); nAv++;
+          files.push({ name: uniq((it.kind === 'video' ? 'video/' : 'audio/') + prefix + safeName(it.base)), data: data });
+          if (it.kind === 'video') nVid++; else nAud++;
         }
         await tick();
       }
@@ -495,13 +509,15 @@ footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacin
       downloadBlob(zip, safeName(baseName(state.file.name)) + '-images.zip');
 
       var png = nPng + nConv;
-      var msg = 'Saved ' + png + (png === 1 ? ' PNG' : ' PNGs') + (nConv ? ' (' + nConv + ' converted)' : '') + ' in a ZIP (' + fmt(zip.size) + ').';
+      var msg = 'Saved ' + (png ? png + (png === 1 ? ' PNG' : ' PNGs') + (nConv ? ' (' + nConv + ' converted)' : '') : 'your files') + ' in a ZIP (' + fmt(zip.size) + ').';
       if (nRaw + nFail) msg += ' ' + (nRaw + nFail) + (nRaw + nFail === 1 ? ' image' : ' images') + ' couldn’t be converted and ' + (nRaw + nFail === 1 ? 'was' : 'were') + ' kept in the “originals” folder.';
-      if (nAv) msg += ' ' + nAv + (nAv === 1 ? ' video/audio file' : ' video/audio files') + ' included in “media”.';
+      if (nVid) msg += ' ' + nVid + (nVid === 1 ? ' video' : ' videos') + ' in “video”.';
+      if (nAud) msg += ' ' + nAud + (nAud === 1 ? ' audio file' : ' audio files') + ' in “audio”.';
       setStatus(msg, 'ok');
     });
   });
 
+  ['#opt-img', '#opt-av'].forEach(function (s) { $(s).addEventListener('change', refresh); });
   refresh();
 })();
 </script>
