@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PPTX Image Extractor</title>
+<script>
+/* Apply saved theme before first paint (shared with the landing page). */
+try { var t = localStorage.getItem('tools-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+:root {
+  --bg: #f3f4fa;
+  --bg-glow: rgba(99, 102, 241, 0.10);
+  --surface: #ffffff;
+  --surface-2: #f6f7fc;
+  --fg: #151a2c;
+  --muted: #5d6680;
+  --line: #dfe2ee;
+  --accent: #4f46e5;
+  --accent-2: #7c3aed;
+  --accent-soft: rgba(79, 70, 229, 0.10);
+  --ok: #15803d;
+  --err: #c0392b;
+  --shadow: 0 1px 2px rgba(20, 26, 60, 0.05), 0 8px 24px -12px rgba(20, 26, 60, 0.16);
+  --shadow-up: 0 2px 4px rgba(20, 26, 60, 0.06), 0 18px 36px -16px rgba(79, 70, 229, 0.35);
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f1a; --bg-glow: rgba(124, 92, 255, 0.14); --surface: #131929; --surface-2: #19203a; --fg: #e8ecf6; --muted: #98a2bb; --line: #263049;
+    --accent: #8b8cff; --accent-2: #a78bfa; --accent-soft: rgba(139, 140, 255, 0.14);
+    --ok: #4cc38a; --err: #ff7b6b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    --shadow-up: 0 2px 4px rgba(0, 0, 0, 0.4), 0 18px 36px -16px rgba(139, 140, 255, 0.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f1a; --bg-glow: rgba(124, 92, 255, 0.14); --surface: #131929; --surface-2: #19203a; --fg: #e8ecf6; --muted: #98a2bb; --line: #263049;
+  --accent: #8b8cff; --accent-2: #a78bfa; --accent-soft: rgba(139, 140, 255, 0.14);
+  --ok: #4cc38a; --err: #ff7b6b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-up: 0 2px 4px rgba(0, 0, 0, 0.4), 0 18px 36px -16px rgba(139, 140, 255, 0.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { min-height: 100%; }
+body {
+  min-height: 100vh; margin: 0;
+  background: var(--bg) radial-gradient(1000px 480px at 80% -10%, var(--bg-glow), transparent 70%) no-repeat;
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: var(--font-body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: max(14px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column;
+}
+.wrap { flex: 1; width: 100%; max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 11px; color: inherit; text-decoration: none; }
+.logo { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; color: #fff; flex: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 6px 16px -6px var(--accent); }
+.brand b { font-family: var(--font-display); font-size: 1.25rem; letter-spacing: -0.02em; }
+.head-actions { display: flex; align-items: center; gap: 8px; }
+.iconbtn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; box-shadow: var(--shadow); transition: color .15s, border-color .15s; text-decoration: none; font: inherit; }
+.iconbtn:hover { color: var(--fg); border-color: var(--accent); }
+
+.hero { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; }
+.hero h1 { font-family: var(--font-display); font-size: clamp(1.9rem, 4.6vw, 2.9rem); line-height: 1.08; letter-spacing: -0.03em; margin: 0; }
+.hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero p { margin: 0; color: var(--muted); font-size: 1rem; max-width: 560px; }
+
+.card { display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+
+.drop { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 30px 16px; border: 1.5px dashed var(--line); border-radius: 14px; background: var(--surface-2); color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop:focus-within { box-shadow: 0 0 0 4px var(--accent-soft); border-color: var(--accent); }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.drop .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 8px 18px -8px var(--accent); margin-bottom: 4px; }
+.drop .ico svg { width: 20px; height: 20px; }
+.drop strong { color: var(--fg); font-family: var(--font-display); font-size: 1.02rem; font-weight: 700; }
+.drop span { font-size: 13px; }
+
+ul.files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+ul.files:empty { display: none; }
+ul.files li { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; }
+ul.files .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+ul.files .meta { color: var(--muted); font-size: 12px; font-family: var(--font-mono); white-space: nowrap; }
+.mini { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; font: inherit; font-size: 15px; line-height: 1; transition: color .15s, border-color .15s; }
+.mini:hover { color: var(--fg); border-color: var(--accent); }
+
+.opts { display: flex; flex-direction: column; gap: 10px; }
+.check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; cursor: pointer; }
+.check input { width: 17px; height: 17px; accent-color: var(--accent); }
+
+.primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 16px; border: 0; border-radius: 14px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 10px 22px -10px var(--accent); transition: transform .15s, box-shadow .15s, opacity .15s; }
+.primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-up); }
+.primary:disabled { opacity: .45; cursor: default; box-shadow: none; }
+
+.note { margin: 0; color: var(--muted); font-size: 12.5px; }
+.status { min-height: 1.4em; font-size: 13.5px; font-weight: 500; }
+.status.ok { color: var(--ok); }
+.status.err { color: var(--err); }
+.status:empty { display: none; }
+
+footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacing: 0.02em; padding-top: 6px; margin-top: auto; }
+
+@media (max-width: 560px) { .card { padding: 16px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <a class="brand" href="index.html" aria-label="Back to Toolbox">
+      <div class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+      <b>Toolbox</b>
+    </a>
+    <div class="head-actions">
+      <a class="iconbtn" href="index.html" title="All tools" aria-label="All tools"><svg class="i" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+      <button class="iconbtn" id="theme" type="button" title="Switch light / dark" aria-label="Switch light or dark theme">
+        <svg class="i" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1>Pull images out of <span>any slide deck</span>.</h1>
+    <p>Drop a PowerPoint file and download every picture inside as a PNG, bundled in one ZIP. Everything runs in your browser and nothing is uploaded.</p>
+  </section>
+
+  <main class="card">
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".pptx,.pptm,.ppsx,.potx,.ppt,.pps,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+      <div class="ico" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+      <strong>Choose a PPTX or drop it here</strong>
+      <span>Works with .pptx, .pptm, .ppsx and .potx files.</span>
+    </label>
+    <ul class="files" id="list"></ul>
+
+    <div class="opts" id="opts" hidden>
+      <label class="check"><input type="checkbox" id="opt-slide" checked> Name files by slide (e.g. slide-03-image7.png)</label>
+      <label class="check" id="av-wrap" hidden><input type="checkbox" id="opt-av"> <span id="av-label"></span></label>
+    </div>
+
+    <button class="primary" id="go" disabled>Extract images</button>
+    <p class="note">Each picture is saved once, even if it appears on several slides. PNGs are copied untouched; JPG, GIF, BMP, WebP and SVG are converted to PNG (GIFs keep their first frame). Formats a browser can’t draw, such as EMF, WMF and TIFF, are kept as-is in an “originals” folder.</p>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </main>
+
+  <footer>Ufuk Korkmaz - 2026</footer>
+</div>
+
+<script>
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var statusEl = $('#status');
+  function setStatus(msg, type) { statusEl.textContent = msg || ''; statusEl.className = 'status ' + (type || ''); }
+
+  /* light / dark (shared with the landing page) */
+  var root = document.documentElement;
+  $('#theme').addEventListener('click', function () {
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('tools-theme', next); } catch (e) {}
+  });
+
+  /* PURE-START: ZIP reader and media planner (no DOM needed) */
+  var dec = new TextDecoder();
+  function text(bytes) { return dec.decode(bytes); }
+
+  async function inflate(bytes) {
+    if (typeof DecompressionStream === 'undefined') throw new Error('This browser is too old to open PowerPoint files. Please update it.');
+    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+
+  function readZip(buf) {
+    var dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength), eocd = -1, i;
+    for (i = buf.length - 22; i >= Math.max(0, buf.length - 22 - 65535); i--) {
+      if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error('This file is not a valid PowerPoint (.pptx) file.');
+    var count = dv.getUint16(eocd + 10, true), cdOff = dv.getUint32(eocd + 16, true);
+    if (count === 0xFFFF || cdOff === 0xFFFFFFFF) throw new Error('This file is too large for the browser to open (ZIP64).');
+    var entries = {}, p = cdOff, n;
+    for (n = 0; n < count; n++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('The file looks damaged.');
+      var flags = dv.getUint16(p + 8, true), method = dv.getUint16(p + 10, true);
+      var csize = dv.getUint32(p + 20, true), usize = dv.getUint32(p + 24, true);
+      var nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+      var lho = dv.getUint32(p + 42, true);
+      var name = dec.decode(buf.subarray(p + 46, p + 46 + nl));
+      entries[name] = { name: name, flags: flags, method: method, csize: csize, usize: usize, lho: lho };
+      p += 46 + nl + el + cl;
+    }
+    return {
+      entries: entries,
+      has: function (name) { return Object.prototype.hasOwnProperty.call(entries, name); },
+      read: async function (name) {
+        var e = entries[name];
+        if (!e) throw new Error('Missing ' + name);
+        if (e.flags & 1) throw new Error('This file is password-protected.');
+        var lnl = dv.getUint16(e.lho + 26, true), lel = dv.getUint16(e.lho + 28, true);
+        var start = e.lho + 30 + lnl + lel, data = buf.subarray(start, start + e.csize);
+        if (e.method === 0) return data;
+        if (e.method === 8) return inflate(data);
+        throw new Error('Unsupported compression in this file.');
+      }
+    };
+  }
+
+  var CONVERTIBLE = { png: 1, jpg: 1, jpeg: 1, jpe: 1, gif: 1, bmp: 1, webp: 1, svg: 1 };
+  var RAW_IMAGE = { emf: 1, wmf: 1, tif: 1, tiff: 1, wdp: 1, jxr: 1, hdp: 1, ico: 1 };
+  var AV = { mp4: 1, m4v: 1, mov: 1, avi: 1, wmv: 1, mpg: 1, mpeg: 1, mp3: 1, wav: 1, m4a: 1, wma: 1, mid: 1, midi: 1, ogg: 1, oga: 1, webm: 1, aac: 1, flac: 1 };
+
+  function relTargets(xml) {
+    var out = [];
+    xml.replace(/<Relationship\b[^>]*>/g, function (tag) {
+      var t = /\bTarget="([^"]+)"/.exec(tag);
+      if (t && !/TargetMode="External"/.test(tag)) out.push(t[1]);
+      return tag;
+    });
+    return out;
+  }
+  function normPptPath(t) { return 'ppt/' + t.replace(/^\/+/, '').replace(/^ppt\//, '').replace(/^(\.\.\/)+/, ''); }
+  function pad(n, total) { var w = String(total).length; var s = String(n); while (s.length < w) s = '0' + s; return s; }
+
+  async function buildPlan(zip) {
+    var names = Object.keys(zip.entries), i, j;
+    var mediaNames = names.filter(function (n) { return /^ppt\/media\/[^\/]+$/i.test(n); });
+
+    /* slide order from presentation.xml, falling back to file numbers */
+    var order = [];
+    try {
+      var pres = text(await zip.read('ppt/presentation.xml'));
+      var prels = text(await zip.read('ppt/_rels/presentation.xml.rels')), map = {};
+      prels.replace(/<Relationship\b[^>]*>/g, function (tag) {
+        var id = /\bId="([^"]+)"/.exec(tag), t = /\bTarget="([^"]+)"/.exec(tag);
+        if (id && t) map[id[1]] = t[1];
+        return tag;
+      });
+      pres.replace(/<p:sldId\b[^>]*>/g, function (tag) {
+        var r = /\br:id="([^"]+)"/.exec(tag);
+        if (r && map[r[1]]) order.push(normPptPath(map[r[1]]));
+        return tag;
+      });
+    } catch (e) { order = []; }
+    order = order.filter(function (n) { return zip.has(n); });
+    if (!order.length) {
+      order = names.filter(function (n) { return /^ppt\/slides\/slide\d+\.xml$/i.test(n); })
+        .sort(function (a, b) { return parseInt(a.replace(/\D+/g, ''), 10) - parseInt(b.replace(/\D+/g, ''), 10); });
+    }
+    var layouts = names.filter(function (n) { return /^ppt\/slideLayouts\/slideLayout\d+\.xml$/i.test(n); })
+      .sort(function (a, b) { return parseInt(a.replace(/\D+/g, ''), 10) - parseInt(b.replace(/\D+/g, ''), 10); });
+    var masters = names.filter(function (n) { return /^ppt\/slideMasters\/slideMaster\d+\.xml$/i.test(n); })
+      .sort(function (a, b) { return parseInt(a.replace(/\D+/g, ''), 10) - parseInt(b.replace(/\D+/g, ''), 10); });
+
+    var prefixOf = {}; /* media base name -> prefix */
+    async function scan(parts, label, width) {
+      for (var k = 0; k < parts.length; k++) {
+        var f = parts[k], slash = f.lastIndexOf('/');
+        var relName = f.slice(0, slash + 1) + '_rels/' + f.slice(slash + 1) + '.rels';
+        if (!zip.has(relName)) continue;
+        var targets = relTargets(text(await zip.read(relName)));
+        for (var m = 0; m < targets.length; m++) {
+          var at = targets[m].toLowerCase().lastIndexOf('media/');
+          if (at < 0) continue;
+          var base = targets[m].slice(at + 6);
+          try { base = decodeURIComponent(base); } catch (e) {}
+          if (!prefixOf[base]) prefixOf[base] = label + '-' + pad(k + 1, width) + '-';
+        }
+      }
+    }
+    await scan(order, 'slide', order.length);
+    await scan(layouts, 'layout', layouts.length);
+    await scan(masters, 'master', masters.length);
+
+    var items = [];
+    mediaNames.sort(function (a, b) {
+      return a.localeCompare(b, undefined, { numeric: true });
+    }).forEach(function (path) {
+      var base = path.slice(path.lastIndexOf('/') + 1), dot = base.lastIndexOf('.');
+      var ext = dot >= 0 ? base.slice(dot + 1).toLowerCase() : '';
+      var kind = CONVERTIBLE[ext] ? 'image' : RAW_IMAGE[ext] ? 'rawimage' : AV[ext] ? 'av' : null;
+      if (!kind) return;
+      items.push({ path: path, base: base, ext: ext, kind: kind, size: zip.entries[path].usize, prefix: prefixOf[base] || '' });
+    });
+    return { slideCount: order.length, items: items };
+  }
+  /* PURE-END */
+
+  /* ---------- ZIP writer (store only) ---------- */
+  var crcTable = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function crc32(buf) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < buf.length; i++) c = crcTable[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function makeZip(files) {
+    if (files.length > 65535) throw new Error('Too many files for a single ZIP (limit 65,535).');
+    var enc = new TextEncoder(), parts = [], central = [], offset = 0, d = new Date();
+    var dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    var dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    files.forEach(function (f) {
+      var nameBytes = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+      var lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+      lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true); lh.setUint32(14, crc, true);
+      lh.setUint32(18, size, true); lh.setUint32(22, size, true); lh.setUint16(26, nameBytes.length, true); lh.setUint16(28, 0, true);
+      parts.push(new Uint8Array(lh.buffer), nameBytes, f.data);
+      var ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+      ch.setUint16(12, dosTime, true); ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true);
+      ch.setUint32(20, size, true); ch.setUint32(24, size, true); ch.setUint16(28, nameBytes.length, true);
+      ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true);
+      ch.setUint32(38, 0, true); ch.setUint32(42, offset, true);
+      central.push(new Uint8Array(ch.buffer), nameBytes);
+      offset += 30 + nameBytes.length + size;
+    });
+    var centralSize = central.reduce(function (s, p) { return s + p.length; }, 0);
+    var end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(4, 0, true); end.setUint16(6, 0, true);
+    end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, centralSize, true); end.setUint32(16, offset, true); end.setUint16(20, 0, true);
+    return new Blob(parts.concat(central, [new Uint8Array(end.buffer)]), { type: 'application/zip' });
+  }
+
+  /* ---------- helpers ---------- */
+  function fmt(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1048576).toFixed(2) + ' MB';
+  }
+  function baseName(n) { return n.replace(/\.[^.]+$/, ''); }
+  function safeName(n) { return n.replace(/[\\\/:*?"<>|]+/g, '_'); }
+  function tick() { return new Promise(function (r) { setTimeout(r, 0); }); }
+  function downloadBlob(blob, name) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  }
+
+  var MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', jpe: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', webp: 'image/webp', svg: 'image/svg+xml' };
+  function loadImage(url) {
+    return new Promise(function (res, rej) {
+      var im = new Image();
+      im.onload = function () { res(im); };
+      im.onerror = function () { rej(new Error('decode')); };
+      im.src = url;
+    });
+  }
+  async function toPng(bytes, ext) {
+    var url = URL.createObjectURL(new Blob([bytes], { type: MIME[ext] }));
+    try {
+      var img = await loadImage(url);
+      var w = img.naturalWidth || 1024, h = img.naturalHeight || 1024;
+      if (ext === 'svg') { var k = Math.max(1, 1024 / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k); }
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      var blob = await new Promise(function (r) { c.toBlob(r, 'image/png'); });
+      if (!blob) throw new Error('encode');
+      return new Uint8Array(await blob.arrayBuffer());
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  async function busy(btn, fn) {
+    var label = btn.innerHTML;
+    btn.disabled = true; btn.textContent = 'Working…'; setStatus('');
+    try { await fn(); }
+    catch (e) { setStatus(e.message || 'Something went wrong.', 'err'); }
+    finally { btn.innerHTML = label; refresh(); }
+  }
+
+  /* ---------- state + UI ---------- */
+  var state = null; /* { file, zip, plan } */
+
+  function refresh() {
+    var n = state ? state.plan.items.filter(function (i) { return i.kind !== 'av'; }).length : 0;
+    var av = state ? state.plan.items.filter(function (i) { return i.kind === 'av'; }).length : 0;
+    $('#go').disabled = !state || (n + av === 0);
+  }
+
+  function render() {
+    var ul = $('#list'); ul.innerHTML = '';
+    $('#opts').hidden = !state;
+    if (!state) return;
+    var imgs = state.plan.items.filter(function (i) { return i.kind !== 'av'; });
+    var avs = state.plan.items.filter(function (i) { return i.kind === 'av'; });
+    var li = document.createElement('li');
+    li.innerHTML = '<span class="name"></span><span class="meta"></span><button class="mini" title="Remove" aria-label="Remove">×</button>';
+    $('.name', li).textContent = state.file.name;
+    $('.meta', li).textContent = imgs.length + (imgs.length === 1 ? ' image · ' : ' images · ') + fmt(state.file.size);
+    $('button', li).addEventListener('click', function () { state = null; setStatus(''); render(); refresh(); });
+    ul.appendChild(li);
+    $('#av-wrap').hidden = avs.length === 0;
+    var avSize = avs.reduce(function (s, i) { return s + i.size; }, 0);
+    $('#av-label').textContent = 'Also include video & audio (' + avs.length + (avs.length === 1 ? ' file, ' : ' files, ') + fmt(avSize) + ')';
+  }
+
+  async function addFile(fileList) {
+    var f = fileList && fileList[0];
+    if (!f) return;
+    setStatus('');
+    try {
+      var buf = new Uint8Array(await f.arrayBuffer());
+      if (buf[0] === 0xD0 && buf[1] === 0xCF && buf[2] === 0x11 && buf[3] === 0xE0) {
+        throw new Error('This is an old-format .ppt file, which browsers can’t read. Open it in PowerPoint, Keynote or LibreOffice, choose Save As .pptx, then try again.');
+      }
+      if (buf[0] !== 0x50 || buf[1] !== 0x4B) throw new Error('This doesn’t look like a PowerPoint (.pptx) file.');
+      var zip = readZip(buf);
+      if (!zip.has('ppt/presentation.xml')) throw new Error('This ZIP file isn’t a PowerPoint presentation.');
+      var plan = await buildPlan(zip);
+      state = { file: f, zip: zip, plan: plan };
+      if (!plan.items.length) setStatus('No images were found in this presentation.', '');
+    } catch (e) {
+      state = null; setStatus(e.message || 'Could not read this file.', 'err');
+    }
+    render(); refresh();
+  }
+
+  var zone = $('#drop'), input = $('#file');
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove('over'); });
+  });
+  zone.addEventListener('drop', function (e) { addFile(e.dataTransfer.files); });
+  input.addEventListener('change', function () { addFile(input.files); input.value = ''; });
+
+  /* ---------- extract ---------- */
+  $('#go').addEventListener('click', function () {
+    busy(this, async function () {
+      var plan = state.plan, byName = $('#opt-slide').checked, withAv = $('#opt-av').checked && !$('#av-wrap').hidden;
+      var files = [], used = {}, nPng = 0, nConv = 0, nRaw = 0, nAv = 0, nFail = 0, i;
+
+      function uniq(n) {
+        var cand = n, k = 2;
+        while (used[cand.toLowerCase()]) { cand = n.replace(/(\.[^.\/]+)$/, '-' + k + '$1'); k++; }
+        used[cand.toLowerCase()] = 1;
+        return cand;
+      }
+
+      var todo = plan.items.filter(function (it) { return it.kind !== 'av' || withAv; });
+      for (i = 0; i < todo.length; i++) {
+        var it = todo[i], prefix = byName ? it.prefix : '';
+        var stem = safeName(it.base.replace(/\.[^.]+$/, ''));
+        setStatus('Processing ' + (i + 1) + ' of ' + todo.length + '…');
+        var data = await state.zip.read(it.path);
+        if (it.kind === 'image') {
+          if (it.ext === 'png') {
+            files.push({ name: uniq(prefix + stem + '.png'), data: data }); nPng++;
+          } else {
+            try {
+              files.push({ name: uniq(prefix + stem + '.png'), data: await toPng(data, it.ext) }); nConv++;
+            } catch (e) {
+              files.push({ name: uniq('originals/' + prefix + safeName(it.base)), data: data }); nFail++;
+            }
+          }
+        } else if (it.kind === 'rawimage') {
+          files.push({ name: uniq('originals/' + prefix + safeName(it.base)), data: data }); nRaw++;
+        } else {
+          files.push({ name: uniq('media/' + prefix + safeName(it.base)), data: data }); nAv++;
+        }
+        await tick();
+      }
+
+      if (!files.length) { setStatus('No images were found in this presentation.', ''); return; }
+      var zip = makeZip(files);
+      downloadBlob(zip, safeName(baseName(state.file.name)) + '-images.zip');
+
+      var png = nPng + nConv;
+      var msg = 'Saved ' + png + (png === 1 ? ' PNG' : ' PNGs') + (nConv ? ' (' + nConv + ' converted)' : '') + ' in a ZIP (' + fmt(zip.size) + ').';
+      if (nRaw + nFail) msg += ' ' + (nRaw + nFail) + (nRaw + nFail === 1 ? ' image' : ' images') + ' couldn’t be converted and ' + (nRaw + nFail === 1 ? 'was' : 'were') + ' kept in the “originals” folder.';
+      if (nAv) msg += ' ' + nAv + (nAv === 1 ? ' video/audio file' : ' video/audio files') + ' included in “media”.';
+      setStatus(msg, 'ok');
+    });
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>
