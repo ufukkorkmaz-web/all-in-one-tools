@@ -114,39 +114,6 @@ a.card:hover .open svg { transform: translateX(4px); }
 footer { text-align: center; font-size: 12px; color: var(--muted); letter-spacing: 0.02em; margin-top: auto; }
 
 
-/* CSS Tools is always the final, expandable home-page tile. */
-.css-group { grid-column: auto; position: relative; padding: 0; display: block; overflow: visible; }
-.css-group:is(.is-open, :hover, :focus-within) { z-index: 20; }
-.css-toggle { appearance: none; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; width: 100%; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; column-gap: 12px; row-gap: 4px; align-content: start; padding: 14px; border-radius: 16px; }
-.css-toggle h2 { align-self: center; }
-.css-toggle .open svg { transition: transform .18s; }
-.css-group.is-open .css-toggle .open svg, .css-group:hover .css-toggle .open svg { transform: rotate(90deg); }
-.css-group:hover { border-color: var(--accent); box-shadow: var(--shadow-up); }
-.css-group:is(.is-open, :hover, :focus-within) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-.css-children { display: none; position: absolute; top: 100%; left: -1px; right: -1px; z-index: 21; padding: 10px 12px 12px; gap: 7px; background: var(--surface); border: 1px solid var(--accent); border-top: 0; border-radius: 0 0 16px 16px; box-shadow: var(--shadow-up); }
-.css-group.is-open .css-children, .css-group:focus-within .css-children { display: grid; }
-.css-child { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; color: var(--fg); text-decoration: none; font-size: 13px; font-weight: 600; }
-.css-child:hover, .css-child:focus-visible { border-color: var(--accent); color: var(--accent); }
-.css-child svg { width: 15px; height: 15px; }
-@media (hover: hover) and (pointer: fine) { .css-group:hover .css-children { display: grid; } }
-@media (max-width: 560px) { .css-toggle { padding: 12px; } }
-
-/* Shorter windows: drop the nice-to-haves first. */
-@media (max-height: 640px) { .tags { display: none; } }
-@media (max-height: 560px) { .hero p { display: none; } }
-@media (max-height: 480px) { .hero { display: none; } .card.soon { display: none; } }
-@media (max-width: 560px) and (max-height: 680px) { .card.soon { display: none; } }
-/* Phones */
-@media (max-width: 560px) {
-  .count { display: none; }
-  .search kbd { display: none; }
-  .hero p { display: none; }
-  .card { padding: 12px; }
-  .grid { gap: 10px; }
-  .tags { display: none; }
-  .card p { -webkit-line-clamp: 1; line-clamp: 1; }
-}
-@media (max-width: 560px) and (max-height: 760px) { .card p { display: none; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -235,33 +202,6 @@ var TOOLS = [
     icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h3M7 12h10M7 16h7"/>'
   },
   {
-    name: 'CSS Glassmorphism Generator',
-    desc: 'Create frosted-glass effects with live blur, opacity, border and color controls. Copy the CSS.',
-    href: 'glassmorphism-generator.html',
-    cat: 'Design',
-    tags: ['glass', 'css', 'blur', 'backdrop'],
-    colors: ['#7c3aed','#06b6d4'],
-    icon: '<rect x="4" y="4" width="14" height="14" rx="3"/><rect x="9" y="9" width="11" height="11" rx="3"/>'
-  },
-  {
-    name: 'CSS Animation Generator',
-    desc: 'Design fade, bounce, slide, spin and more animations. Tune timing, easing and repeats, then copy CSS.',
-    href: 'css-animation-generator.html',
-    cat: 'Design',
-    tags: ['animation', 'keyframes', 'css', 'motion', 'effects'],
-    colors: ['#6366f1', '#ec4899'],
-    icon: '<circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/>'
-  },
-  {
-    name: 'Typography Playground',
-    desc: 'Try fonts, weights, sizes, tracking and line spacing in a live preview. Copy CSS instantly.',
-    href: 'typography-playground.html',
-    cat: 'Design',
-    tags: ['typography','fonts','css','text'],
-    colors: ['#db2777','#8b5cf6'],
-    icon: '<path d="M3 6h18M12 6v15M7 21h10M5 11V6M19 11V6"/>'
-  },
-  {
     name: 'Metadata Remover',
     desc: 'Remove hidden GPS, camera and EXIF details from PNG, JPG and WebP images. Clean multiple files privately.',
     href: 'metadata-remover.html',
@@ -313,53 +253,25 @@ var TOOLS = [
       '<span class="open">Open tool <svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>';
   }
 
-  // Keep these five tools first and in this exact order, regardless of TOOLS edits.
+  // Keep the original five tools first, followed by the remaining tools.
   var fixedPages = ['iframe-maker.html', 'qr-maker.html', 'pdf-toolkit.html', 'pptx-images.html', 'image-to-ascii.html'];
-  var cssPages = ['glassmorphism-generator.html', 'css-animation-generator.html', 'typography-playground.html'];
   var mainTools = fixedPages.map(function (href) { return TOOLS.find(function (t) { return t.href === href; }); }).filter(Boolean);
-  var cssTools = cssPages.map(function (href) { return TOOLS.find(function (t) { return t.href === href; }); }).filter(Boolean);
-  // Every other tool is shown before CSS Tools, even when new entries are appended to TOOLS.
-  var extraTools = TOOLS.filter(function (t) { return fixedPages.indexOf(t.href) === -1 && cssPages.indexOf(t.href) === -1; });
-  var cssExpanded = false;
-
-  function cssGroup(visible, expanded) {
-    var markup = '<div class="card css-group' + (expanded ? ' is-open' : '') + '" id="css-tools-group" style="--c1:#7c3aed;--c2:#ec4899">' +
-      '<button class="css-toggle" type="button" aria-expanded="' + expanded + '" aria-controls="css-tools-children">' +
-      '<span class="tile" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/><path d="M14 4l-4 16"/></svg></span>' +
-      '<h2>CSS Tools</h2><p>Glassmorphism, animations and typography generators.</p>' +
-      '<span class="open" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span></button>' +
-      '<div class="css-children" id="css-tools-children">' + visible.map(function (t) {
-        return '<a class="css-child" href="' + esc(t.href) + '"><span>' + esc(t.name) + '</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>';
-      }).join('') + '</div></div>';
-    return markup;
-  }
+  var extraTools = TOOLS.filter(function (t) { return fixedPages.indexOf(t.href) === -1; });
 
   function render() {
     var term = q.value.trim();
     var regular = mainTools.filter(function (t) { return matches(t, term); });
-    var nested = cssTools.filter(function (t) { return matches(t, term); });
     var extra = extraTools.filter(function (t) { return matches(t, term); });
-    // Fixed five, then all other regular tools, then placeholder, with CSS Tools always last.
     var html = regular.map(card).join('') + extra.map(card).join('');
     if (!term && cat === 'All') {
       html += '<div class="card soon"><div class="tile" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div><h2>More tools coming</h2><p>New tools will show up here as soon as they are ready.</p></div>';
     }
-    if (nested.length) html += cssGroup(nested, cssExpanded || !!term);
     grid.innerHTML = html;
-    var n = regular.length + nested.length + extra.length;
+    var n = regular.length + extra.length;
     empty.hidden = n > 0 || (!term && cat === 'All');
     empty.textContent = n ? '' : 'No tools match "' + term + '". Try a shorter word.';
     count.textContent = n + (n === 1 ? ' tool' : ' tools');
   }
-
-  grid.addEventListener('click', function (e) {
-    var toggle = e.target.closest('.css-toggle');
-    if (!toggle) return;
-    cssExpanded = !toggle.closest('.css-group').classList.contains('is-open');
-    var group = toggle.closest('.css-group');
-    group.classList.toggle('is-open', cssExpanded);
-    toggle.setAttribute('aria-expanded', String(cssExpanded));
-  });
 
   function renderChips() {
     chipsEl.innerHTML = cats.map(function (c) {
